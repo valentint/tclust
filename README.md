@@ -16,11 +16,11 @@ version](https://www.r-pkg.org/badges/version/tclust)](https://cran.r-project.or
 
 The package `tclust` provides functions for robust trimmed clustering.
 The methods are described in Garcia-Escudero (2008)
-[doi:10.1214/07-AOS515](https://doi:10.1214/07-AOS515), Fritz et
+[doi:10.1214/07-AOS515](https://doi.org:10.1214/07-AOS515), Fritz et
 al. (2012)
-[doi:10.18637/jss.v047.i12](https://doi:10.18637/jss.v047.i12),
+[doi:10.18637/jss.v047.i12](https://doi.org:10.18637/jss.v047.i12),
 Garcia-Escudero et al. (2011)
-[doi:10.1007/s11222-010-9194-z](https://doi:10.1007/s11222-010-9194-z)
+[doi:10.1007/s11222-010-9194-z](https://doi.org:10.1007/s11222-010-9194-z)
 and others.
 
 ## Installation
@@ -68,6 +68,8 @@ clus.c <- tclust (x, k = 3, alpha = 0.1, restr.fact =  1,
           warnings = 1)
 clus.d <- tclust (x, k = 3, alpha = 0.1, restr.fact = 50,
                   restr = "eigen", equal.weights = FALSE)
+#> Warning in .tkmeans.warn(O, ret): Less than 50% of the iterations (48%)
+#> converged - please increase iter.max.
 
 pa <- par (mfrow = c (2, 2))
 plot (clus.a, main = "(a) tkmeans")
