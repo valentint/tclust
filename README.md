@@ -7,10 +7,11 @@
 
 [![CRAN
 version](https://www.r-pkg.org/badges/version/tclust)](https://cran.r-project.org/package=tclust)
-[![R-CMD-check](https://github.com/valentint/tclust/workflows/R-CMD-check/badge.svg)](https://github.com/valentint/tclust/actions)
+[![R-CMD-check](https://github.com/valentint/tclust/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/valentint/tclust/actions/workflows/R-CMD-check.yaml)
 [![downloads](https://cranlogs.r-pkg.org/badges/tclust)](https://cran.r-project.org/package=tclust)
 [![downloads](https://cranlogs.r-pkg.org/badges/grand-total/tclust)](https://cran.r-project.org/package=tclust)
 [![license](https://img.shields.io/badge/license-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+
 <!-- badges: end -->
 
 The package `tclust` provides functions for robust trimmed clustering.
