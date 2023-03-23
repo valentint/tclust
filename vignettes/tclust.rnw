@@ -1,0 +1,1601 @@
+\documentclass[nojss,shortnames]{jss}
+
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{natbib}
+\usepackage{float}
+\usepackage{color}
+%\input colornam.sty
+
+%\VignetteIndexEntry{A Trimming Approach to Cluster Analysis}
+%\VignetteDepends{tclust}
+%\VignetteKeywords{Model-based clustering, trimming, heterogeneous clusters}
+%\VignettePackage{tclust}
+
+\newcommand{\rounding}[1]{\lceil#1\rceil}   %% new rounding symbol
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% declarations for jss.cls %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% almost as usual
+\author{Heinrich Fritz\\Department of Statistics\\ and Probability Theory\\ Vienna University of Technology \And
+        Luis A. Garc\'{\i}a-Escudero\\Departamento de Estad\'{\i}stica\\ e Investigaci\'{o}n Operativa\\ Universidad de Valladolid \And
+        Agust\'{\i}n Mayo-Iscar\\Departamento de Estad\'{\i}stica\\ e Investigaci\'{o}n Operativa\\ Universidad de Valladolid }
+\title{\pkg{tclust}: An \proglang{R} Package for a Trimming Approach to Cluster Analysis }
+
+%% for pretty printing and a nice hypersummary also set:
+\Plainauthor{Heinrich Fritz, Luis A. Garc\'{\i}a-Escudero, Agust\'{\i}n Mayo-Iscar}
+\Plaintitle{tclust: An R Package for a Trimming Approach to Cluster Analysis}
+%\Shorttitle{\pkg{tclust}: An \proglang{R} package for a trimming approach to cluster analysis} %% a short title (if necessary) % this is optional. no use if not different from "real" title
+
+%% an abstract and keywords
+\Abstract{This introduction to the \proglang{R} package \pkg{tclust} is a (slightly)
+modified version of \cite{FriG12}, published in the
+\emph{Journal of Statistical Software}.
+
+Outlying data can heavily influence standard clustering
+methods. At the same time, clustering principles can be useful when
+robustifying statistical procedures. These two reasons motivate the
+development of feasible robust model-based clustering approaches.
+With this in mind, an R package for performing non-hierarchical
+robust clustering, called \pkg{tclust}, is presented here. Instead
+of trying to ``fit" noisy data, a proportion $\alpha$ of the most
+outlying observations is trimmed. The \pkg{tclust} package
+efficiently handles different cluster scatter constraints. Graphical
+exploratory tools are also provided to help the user make sensible
+choices for the trimming proportion as well as the number of
+clusters to search for.} \Keywords{Model-based clustering, trimming,
+heterogeneous clusters}
+\Plainkeywords{Model-based clustering, trimming, heterogeneous clusters} %% without formatting
+%% at least one keyword must be supplied
+
+%% publication information
+%% NOTE: Typically, this can be left commented and will be filled out by the technical editor
+%% \Volume{13}
+%% \Issue{9}
+%% \Month{September}
+%% \Year{2004}
+%% \Submitdate{2004-09-29}
+%% \Acceptdate{2004-09-29}
+
+%% The address of (at least) one author should be given
+%% in the following format:
+\Address{
+  Luis A. Garc\'{\i}a-Escudero\\
+  Departamento de Estad\'{\i}stica e Investigaci\'{o}n Operativa. Universidad de Valladolid\\
+  Prado de la Magdalena s/n, 47005 Valladolid, SPAIN\\
+  E-mail: \email{lagarcia@eio.uva.es}\\
+  %URL: \url{http://www.eio.uva.es/infor/personas/langel.html}
+}
+
+%% It is also possible to add a telephone and fax number
+%% before the e-mail in the following format:
+%% Telephone: +43/1/31336-5053
+%% Fax: +43/1/31336-734
+
+%% for those who use Sweave please include the following line (with % symbols):
+%% need no \usepackage{Sweave.sty}
+
+%% end of declarations %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Note that you should use the \pkg{}, \proglang{} and \code{} commands.
+\begin{document}
+
+\section{Introduction to robust clustering and tclust}\label{sec4:int}
+
+Methods for cluster analysis attempt to detect homogeneous clusters
+with large heterogeneity among them. As happens with other
+(non-robust) statistical procedures, clustering methods may be
+heavily influenced by even a small fraction of outlying data. For
+instance, two or more clusters might be joined artificially, due to
+outlying observations, or ``spurious" non-informative clusters may
+be composed of only a few outlying observations \citep[see,
+e.g.,][]{GarG99,GarG10}. Therefore, the application of robust methods
+in this context is very advisable, especially in fully automatic
+clustering (unsupervised learning) problems. Certain relations
+between cluster analysis and robust methods
+\citep{RocW02,HarR04,GarG03,WooR04} also motivate interest in robust
+clustering techniques. For example, robust clustering techniques can
+be used to handle ``clusters" of highly concentrated outliers which
+are especially dangerous in (non-robust) estimation. \cite{GarG10}
+provides a recent survey of robust clustering methods.
+
+The \pkg{tclust} package for the \proglang{R} environment for
+statistical computing \citep{R} implements different robust
+non-hierarchical clustering algorithms where trimming plays a key
+role. This package is available at
+\texttt{http://CRAN.R-project.org/package=tclust}. When trimming
+allows the removal of a fraction $\alpha$ of the ``most outlying"
+data, the strong influence of outlying observations can be avoided.
+This trimming approach to clustering has been introduced in
+\cite{CueG97}, \cite{GalM02}, \cite{GalR05} and \cite{GarG08}.
+Trimming also serves to identify potentially interesting anomalous
+observations.
+
+Trimming is not a new concept in statistics. For instance, the
+trimmed mean for one-dimensional data removes a proportion
+$\alpha/2$ each of the largest and smallest observations before
+computing the mean. However, it is not straightforward to extend
+this philosophy to cluster analysis, because most of these problems
+are of multivariate nature. Moreover, it is often the case that
+``bridge points" lying between clusters ought to be trimmed. Instead
+of forcing the statistician to define the regions to be trimmed in
+advance, the procedures implemented in \pkg{tclust} take the whole
+data structure into account in order to decide which parts of the
+sample should be discarded. By considering this type of trimming,
+these procedures are even able to trim outlying bridge points. The
+``self-trimming" philosophy behind these procedures is exactly the
+same as adopted by some well-known high breakdown-point methods
+\citep[see, e.g.,][]{RouL87}.
+
+As a first example of this trimming approach, let us consider the
+trimmed $k$-means method introduced in \cite{CueG97}. The function
+\code{tkmeans} from the \pkg{tclust} package implements this method.
+In the following example, this function is applied to a bivariate
+data set based on the Old Faithful geyser called \code{geyser2} that
+accompanies the \pkg{tclust} package. The code given below creates
+Figure~\ref{fig4:f1}.
+\begin{Code}
+R > library ("tclust")
+R > data ("geyser2")
+R > clus <- tkmeans (geyser2, k = 3, alpha = 0.03)
+R > plot (clus)
+\end{Code}
+In the data set \code{geyser2}, we are searching for $k=3$ clusters
+and a proportion $\alpha=0.03$ of the data is trimmed. The
+clustering results are shown in Figure~\ref{fig4:f1}. Among this $3\%$ of
+trimmed data, we can see 6 anomalous ``short followed by short"
+eruptions lengths. Notice that an observation situated between the
+clusters is also trimmed.
+\begin{figure}[t!]
+\centering
+%\includegraphics[width = 0.65 \textwidth]{Plots_R-chunk1}
+<<fig=TRUE,echo=false,results=hide,label=chunk1,width=7.14,height=7.8>>=
+options(prompt = "R> ", continue = "+  ", width = 70, useFancyQuotes = FALSE)
+
+library (tclust)
+
+                 ## standard margins
+mmar <- c (5.1, 4.1, 4.1, 1.1)
+og <- grey (0)   ## color for outliers
+
+
+################
+##  Figure 1  ##
+################
+
+set.seed (100)
+
+data (geyser2)
+clus <- tkmeans (geyser2, k = 3, alpha=0.03)
+plot (clus, col = c (og, 2:4), tol.lwd = 1, tol.lty = 2)
+
+
+@
+
+\caption{Trimmed $k$-means results with $k=3$ and $\alpha=0.03$ for
+the bivariate Old Faithful Geyser data. Trimmed observations are
+denoted by the symbol ``$\circ$" (a convention followed in all the
+figures in this work).} \label{fig4:f1}
+\end{figure}
+
+The package presented here adopts a ``crisp" clustering approach,
+meaning that each observation is either trimmed or fully assigned to
+a cluster. In comparison, mixture approaches estimate a cluster
+pertinence probability for each observation. Robust mixture
+alternatives have also been proposed where noisy data is tried to be
+fitted through additional mixture components. For instance, package
+\pkg{mclust} \citep{FraR12, BanR93,FraR98} and the Fortran program
+\pkg{emmix} \citep{EMMIX99, LacP00} implement such robust mixture fitting
+approaches. Mixture fitting results can be easily converted into a
+``crisp" clustering result by converting the cluster pertinence
+probabilities into 0-1 probabilities. Contrary to these mixture
+fitting approaches, the procedures implemented in the \pkg{tclust}
+package simply remove outlying observations and do not intend to fit
+them at all. Package \pkg{tlemix} \citep[see][]{NeyF12, NeyF07} also
+implements a closely related trimming approach. As described in
+Section~\ref{sec4:cons}, the \pkg{tclust} package focuses on
+offering adequate cluster scatter matrix constraints leading to a
+wide range of clustering procedures depending on the chosen
+constraint, and avoiding the occurrence of spurious non-interesting
+clusters.
+
+The outline of the paper is as follows: In Section~\ref{sec4:tri} we
+briefly review the so-called ``spurious outliers" model and show how
+to derive two different clustering criteria from it. Different
+constraints on the cluster scatter matrices and their implementation
+in the \pkg{tclust} package are addressed in Section~\ref{sec4:cons}.
+Section~\ref{sec4:num} presents the numerical
+output returned by this package. Section~\ref{sec4:alg} provides
+some brief comments concerning the algorithms implemented, and a
+comparison of \pkg{tclust} and several other robust clustering
+approaches are given in Section~\ref{sec4:comp}.
+Section~\ref{sec4:kal} shows some graphical outputs that help advise the
+choice of the number of clusters and the trimming proportion. Other
+useful plots summarizing the robust clustering results are shown in
+Section~\ref{sec4:gra}. Finally, Section~\ref{sec4:exa} applies the
+\pkg{tclust} package to a well-know real data set.
+
+
+\section{Trimming and the spurious outliers model}\label{sec4:tri}
+\cite{GalM02} and \cite{GalR05} propose the ``spurious outliers
+model" as a probabilistic framework for robust crisp clustering. Let
+$f(\cdot;\mu,\Sigma)$ denote the probability density function of the
+$p$-variate normal distribution with mean $\mu$ and covariance
+matrix $\Sigma$. The ``spurious-outlier model" is defined through
+``likelihoods" like
+\begin{equation}\label{eqn4:spu}
+  \bigg[\prod_{j=1}^{k}\prod_{i\in R_j}f(x_i;\mu_j,\Sigma_j)\bigg]\bigg[\prod_{i \in R_0}g_i(x_i)\bigg]
+\end{equation}
+with $\{R_0,...,R_k\}$ being a partition of the set of indices
+$\{1,2,...,n\}$ such that $\#R_0=\rounding{n\alpha}$. $R_0$ are the
+indices of the ``non-regular" observations  generated by other (not
+necessarily normal) probability density functions $g_i$.
+``Non-regular" observations can be clearly considered as ``outliers"
+if we assume certain sensible assumptions for the $g_i$ \citep[see
+details in][]{GalM02,GalR05}. Under these assumptions, the search of
+a partition $\{R_0,...,R_k\}$ with $\#R_0=\rounding{n\alpha}$,
+vectors $\mu_j$ and positive definite matrices $\Sigma_j$ maximizing
+(\ref{eqn4:spu}) can be simplified to the same search (of a
+partition, vectors and positive definite matrices) by just
+maximizing
+\begin{equation}\label{eqn4:e3}
+ \sum_{j=1}^{k}\sum_{i\in R_j}\log f(x_i;\mu_j,\Sigma_j).
+\end{equation}
+Notice that observations $x_i$ with $i\in R_0$ are not taken into
+account in (\ref{eqn4:e3}). Maximizing (\ref{eqn4:e3}) with $k=1$ yields the
+Minimum Covariance Determinant (MCD) estimator \citep{RouP85}.
+
+Unfortunately, the direct maximization of (\ref{eqn4:e3}) is not a
+well-defined problem when $k>1$. It is easy to see that (\ref{eqn4:e3})
+is unbounded without any constraint on the cluster scatter matrices
+$\Sigma_j$. The \code{tclust} function from the \pkg{tclust} package
+approximately maximizes (\ref{eqn4:e3}) under different cluster scatter
+matrix constraints which will be shown in Section~\ref{sec4:cons}.
+
+The maximization of (\ref{eqn4:e3}) implicitly assumes equal cluster
+weights. In other words, we are ideally searching for clusters with
+equal sizes. The function \code{tclust} provides this option by
+setting the argument \code{equal.weights = TRUE}. The use of this
+option does not guarantee that all resulting clusters exactly
+contain the same number of observations, but the method hence
+prefers this type of solutions.
+
+Alternatively, different cluster sizes or cluster weights can be
+considered by searching for a partition $\{R_0,...,R_k\}$ (with
+$\#R_0=\rounding{n\alpha}$), vectors $\mu_j$, positive definite
+matrices $\Sigma_j$ and weights $\pi_j\in[0,1]$ maximizing
+\begin{equation}\label{eqn4:e4}
+ \sum_{j=1}^{k}\sum_{i\in R_j}(\log \pi_j + \log f(x_i;\mu_j,\Sigma_j)).
+\end{equation}
+The (default) option \code{equal.weights = FALSE} is used in this
+case. Again, the scatter matrices also have to be constrained such
+that the maximization of (\ref{eqn4:e4}) becomes a well-defined
+problem. Note that (\ref{eqn4:e4}) simplifies to (\ref{eqn4:e3})
+when assuming \code{equal.weights = TRUE} and all weights are
+equally set to $\pi_j=1/k$.
+
+\newpage
+\section{Constraints on the cluster scatter matrices}\label{sec4:cons}
+
+As already mentioned, the function \code{tclust} implements
+different algorithms aimed at approximately maximizing
+(\ref{eqn4:e3}) and (\ref{eqn4:e4}) under different types of
+constraints which can be applied on the scatter matrices $\Sigma_j$.
+The type of constraint is specified by the argument \code{restr} of
+the \code{tclust} function. Table~\ref{tab4:app.ovv} gives an
+overview of the different clustering approaches implemented by the
+\code{tclust} function depending on the chosen type of constraint.
+
+\begin{table}[t!]
+  \centering
+\begin{tabular}{||l|l|l||}
+  \hline\hline
+  &\code{equal.weights = TRUE}&\code{equal.weights = FALSE}\\ \hline
+ \code{restr = "eigen"} & \hspace{-1.8mm}$\begin{array}{l} k\textit{-means} \\ \text{\cite{CueG97}} \end{array}$ & \cite{GarG08} \\\hline
+ \code{restr = "deter"} & \text{\cite{GalM02}} & \text{This work}\\\hline
+ \code{restr = "sigma"} & \hspace{-1.8mm}$\begin{array}{l} \textit{\citeauthor{FriR67}}\hspace{1.3mm} \text{(\citeyear{FriR67})} \\ \text{\cite{GalR05}}\end{array}$ & \text{This work}\\
+ \hline\hline
+\end{tabular}
+  \caption{\label{tab4:app.ovv}Clustering methods handled by \pkg{tclust}. Names in cursive letters are untrimmed ($\alpha=0$) methods.}
+\end{table}
+
+Imposing constraints is compulsory because maximizing
+(\ref{eqn4:e3}) or (\ref{eqn4:e4}) without any restriction is not a
+well-defined problem. Notice that an almost degenerated scatter
+matrix $\Sigma_j$ would cause trimmed log-likelihoods
+(\ref{eqn4:e3}) and (\ref{eqn4:e4}) to tend to infinity. This issue
+can cause a (robust) clustering algorithm of this type to end up
+finding ``spurious" clusters almost lying in lower-dimensional
+subspaces. Moreover, the resulting clustering solutions might
+heavily depend on the chosen constraint. The strength of the
+constraint is controlled by the argument \code{restr.fact} $\geq 1$
+in the \code{tclust} function. The larger \code{restr.fact} is
+chosen, the looser is the restriction on the scatter matrices,
+allowing for more heterogeneity among the clusters. On the contrary,
+small values of \code{restr.fact} close to 1 imply very ``equally
+scattered" clusters. This idea of constraining cluster scatters to
+avoid spurious solutions goes back to \cite{HatR85}, who proposed it
+in mixture fitting problems.
+
+Also arising from the spurious outlier model, other types of
+constraints have recently been introduced by \cite{GalR09,GalR10}.
+These (closely related) constraints also serve to avoid degeneracy
+of trimmed likelihoods but they are not implemented in the current
+version of the \pkg{tclust} package.
+
+\subsection{Constraints on the eigenvalues}\label{sec4:consteig}
+Based on the eigenvalues of the cluster scatter matrices, a scatter
+similarity constraint may be defined. With $\lambda_l(\Sigma_j)$ as
+the eigenvalues of the cluster scatter matrices $\Sigma_j$ and
+\begin{equation}\label{eqn4:e5}
+    M_n=\max_{j=1,...,k}\,\max_{l=1,...,p}\lambda_l(\Sigma_j)\text{
+and } m_n=\min_{j=1,...,k}\,\min_{l=1,...,p}\lambda_l(\Sigma_j)
+\end{equation}
+as the maximum and minimum eigenvalues, the restriction
+\texttt{restr = "eigen"} constrains the ratio $M_n/m_n$  to be
+smaller or equal than a fixed value \code{restr.fact} $\geq 1$. A
+theoretical study of the properties of this approach with
+\code{equal.weights = FALSE} can be found in \cite{GarG08}.
+
+This type of constraint limits the relative size of the axes of the
+equidensity ellipsoids defined through the obtained $\Sigma_j$ when
+assuming normality. This way we are simultaneously controlling the
+relative group sizes and also the deviation from sphericity in each
+cluster.
+
+Setting \code{equal.weights = TRUE}, \code{restr = "eigen"} and
+\code{restr.fact = 1} implies the most constrained case. In this
+case, the \code{tclust} function tries to solve the trimmed
+$k$-means problem as introduced by \cite {CueG97}. This problem
+simplifies to the well-known $k$-means clustering criterion when no
+trimming is done (i.e., \code{alpha = 0}). The \code{tkmeans}
+function directly implements this most constrained application of
+the \code{tclust} function.
+
+\subsection{Constraints on the determinants}\label{sec4:constdet}
+Another way of restricting cluster scatter matrices is constraining
+their determinants. Thus, if
+$$
+M_n=\max_{j=1,...,k}|\Sigma_j|\text{ and
+}m_n=\min_{j=1,...,k}|\Sigma_j|
+$$
+are the maximum and minimum
+determinants, we attempt to maximize (\ref{eqn4:e3}) or (\ref{eqn4:e4}) by
+constraining the ratio $M_n/m_n$ to be smaller or equal than a fixed
+value \code{restr.fact}. This is done in the function \code{tclust}
+by using the option \code{restr = "deter"}.
+
+Now, this type of constraint limits the relative volumes of the
+mentioned equidensity ellipsoids, but not the cluster shapes. The
+use of this type of constraint is particularly advisable when affine
+equivariance is required because this property is satisfied when
+\code{restr = "deter"}.
+
+The untrimmed case \code{alpha = 0}, \code{restr = "deter"} and
+\code{restr.fact = 1} was already outlined in \cite{MarJ74}, as the
+only sensible way to avoid (Mahalanobis distance modified) $k$-means
+type algorithms to return clusters of a few almost collinear
+observations. The possibility of trimming data was also considered
+in \cite{GalM02} who implicitly assumed $|\Sigma_1|=...=|\Sigma_k|$
+(and so \code{restr.fact = 1}). The package presented here extends
+her approach to more general cases (\code{restr.fact} $>1$).
+
+\subsection{Equal scatter matrices}
+
+Among the methods considered, \code{tclust} also implements a
+stronger type of constraint by setting \code{restr = "sigma"} which
+forces all cluster scatter matrices to be the same:
+$\Sigma_1=...=\Sigma_k$. This is known as the ``determinantal"
+criterion and it goes back to \cite{FriR67}. The trimmed version of
+this approach was introduced by \cite{GalR05}. The argument
+\code{restr.fact} is ignored when applying this type of constraint.
+
+
+\subsection{Example}
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.65 \textwidth]{Plots_R-chunk2}
+%\includegraphics[width=10cm]{Plots_R-chunk2a}
+<<fig=TRUE,echo=false,results=hide,label=chunk2,width=7.14,height=7.8>>=
+
+################
+##  Figure 2  ##
+################
+
+data (M5data)
+cl <- M5data[, "cluster"]
+plot (M5data[, 1:2], col = cl + 1, pch = cl + 1, main = "The M5data data set")
+
+@
+\caption{ A scatter plot of the \code{M5data} data set. Different
+symbols are used for the data points generated by each of the three
+bivariate normal components and ``$\circ$" for the added
+outliers.}\label{f2a}
+\end{figure}
+In this example, we examine the influence of different constraints
+by applying the function \code{tclust} to the so-called
+\code{M5data} data set. This data set, which accompanies the
+\pkg{tclust} package, has been generated following the simulation
+scheme M5 introduced in \cite{GarG08}. Thus it is a bivariate
+mixture of three simulated gaussian components with very different
+scatters and a clear overlap between two of these components.
+\begin{figure}[t!] \centering
+%\includegraphics[width= 0.77 \textwidth]{Plots_R-chunk3}
+<<fig=TRUE,echo=false,results=hide,label=chunk3,width=8,height=9>>=
+
+################
+##  Figure 3  ##
+################
+
+data (M5data)
+x <- M5data[, 1:2]
+set.seed (100)
+
+  ## applying tclust with restr.fact = 1, restr= "eigen"
+res.a <- tclust (x, k = 3, alpha=0.1, restr.fact = 1, restr= "eigen",
+                 equal.weights = TRUE, warnings = 1)
+
+  ## applying tclust with restr= "sigma"
+  ##
+  ## VT::24.05.2018 - call with restr= "sigma" commented out
+  ##
+## res.b <- tclust (x, k = 3, alpha=0.1, restr.fact = 1, restr= "sigma",
+##                 equal.weights = TRUE)
+
+  ## applying tclust with restr.fact = 1, restr= "deter"
+res.c <- tclust (x, k = 3, alpha=0.1, restr.fact = 1, restr= "deter",
+                 equal.weights = TRUE, warnings = 1)
+
+  ## applying tclust with restr.fact = 50, restr= "eigen"
+res.d <- tclust (x, k = 3, alpha=0.1, restr.fact = 50, restr= "eigen",
+                 equal.weights = FALSE)
+
+op <- par (mfrow = c (2, 2), mar = c (2.1, 2.1, 3.6, 1.1))
+col <- c (og, 4, 2, 3)
+pch <- c (1, 4, 2, 3)
+
+  ## plotting results..
+plot (res.a, col = col, pch = pch, tol.lty = 2, xlab = "",
+     ylab = "", main.pre ="(a)", main = "/r")
+
+  ## VT::24.05.2018 - call with restr= "sigma" commented out
+  ##
+## plot (res.b, col = col, pch = pch, tol.lty = 2, xlab = "",
+##     ylab = "", main.pre ="(b)", main = "/r")
+
+plot (res.c, col = col, pch = pch, tol.lty = 2, xlab = "",
+     ylab = "", main.pre ="(c)", main = "/r")
+plot (res.d, col = col, pch = pch, tol.lty = 2, xlab = "",
+     ylab = "", main.pre ="(d)", main = "/r")
+par (op)
+
+
+@
+
+\caption{Results of the clustering processes for the \code{M5data}
+data set for different constraints on the cluster scatter matrices
+and the parameters $\alpha = 0.1$ and $k= 3$. Different colors and
+symbols represent each observation's individual cluster assignment.}
+\label{fig4:f2}
+\end{figure}
+A $10\%$ proportion of outliers is also added in the outer region of
+the bounding rectangle enclosing the three gaussian components. See
+Figure~\ref{f2a} for a graphical representation and \cite{GarG08}
+for more details on the structure of this \code{M5data} data set.
+Executing the following code yields Figure~\ref{fig4:f2}.
+\begin{Code}
+R > data ("M5data")
+R > x <- M5data[, 1:2]
+R > res.a <- tclust (x, k = 3, alpha = 0.1, restr.fact = 1,  restr = "eigen",
+    + equal.weights = TRUE)
+R > res.b <- tclust (x, k = 3, alpha = 0.1, restr.fact = 1,  restr = "sigma",
+    + equal.weights = TRUE)
+R > res.c <- tclust (x, k = 3, alpha = 0.1, restr.fact = 1,  restr = "deter",
+    + equal.weights = TRUE)
+R > res.d <- tclust (x, k = 3, alpha = 0.1, restr.fact = 50, restr = "eigen",
+    + equal.weights = FALSE)
+R > plot (res.a, main = "/r")
+R > plot (res.b, main = "/r")
+R > plot (res.c, main = "/r")
+R > plot (res.d, main = "/r")
+\end{Code}
+Although different constraints are imposed, we are searching for
+$k=3$ clusters and the trimming proportion is set to $\alpha=0.1$ in
+all the cases. Note that only the clustering procedure introduced in
+\cite{GarG08}, shown in Figure~\ref{fig4:f2},(d), with a sufficiently
+large value of \code{restr.fact} approximately returns the three
+original clusters in spite of the very different cluster scatters
+and different cluster sizes. Moreover, this clustering procedure
+adequately handles the severe overlap of two clusters. The value
+\code{restr.fact = 50} has been chosen in this case because the
+eigenvectors of the covariance matrices of the three gaussian
+components satisfy restriction (\ref{eqn4:e5}) for this value. Due to
+their underlying assumptions, the other three clustering methods
+(trimmed $k$-means in Figure~\ref{fig4:f2},(a), \cite{GalR05} in (b),
+\cite{GalM02} in (c)) return rather similarly structured clusters.
+In fact, we found spherical clusters in (a), clusters with the same
+scatter matrix in (b) and clusters with the same cluster scatter
+matrix determinant in (c). The \code{M5data} is perhaps a very
+``extreme" situation and restriction settings in (a), (b) and (c)
+can be useful (and easier to be interpreted) with not so extreme
+data sets and where the assumptions implied by these restriction
+settings hold.
+
+\section{Numerical output}\label{sec4:num}
+
+The function \code{tclust} returns an S3 object containing the
+cluster centers $\mu_j$ by columns (\code{\$centers}), scatter
+matrices $\Sigma_j$ as an array (\code{\$cov}), the weights
+(\code{\$weights}), the number of observations in each group
+(\code{\$size}) and the maximum value found for the trimmed
+log-likelihood objective function (\ref{eqn4:e3}) or (\ref{eqn4:e4})
+(\code{\$obj}). The vector \code{\$cluster} provides the cluster
+assignment of each observation, whereas an artificial cluster
+``\code{0}" (without location and scatter information) is introduced
+which holds all trimmed data points.
+
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.65 \textwidth]{Plots_R-chunk4}
+<<fig=TRUE,echo=false,results=hide,label=chunk4,width=7.14,height=7.8>>=
+
+################
+##  Figure 4  ##
+################
+
+  ## data generation
+library(mvtnorm)
+set.seed (10)
+x <- rbind (rmvnorm (200, c (0, 0), diag (2)),
+            rmvnorm (200, c (5, 0), diag (2)))
+
+  ## applying tclust
+clus.4 <- tclust (x, k = 3, alpha = 0.0, restr.fact = 1, warnings = 0)
+
+  ## plotting results..
+plot (clus.4, xlim = c (-3, 9), ylim = c (-6, 6))
+
+
+@
+\caption{Applying \code{tclust} with $k = 3$ and $\alpha = 0$ on a
+simulated data set which originally consists of 2 clusters when
+\code{equal.weights = FALSE}.} \label{fig4:f3a}
+\end{figure}
+
+Sometimes, (\ref{eqn4:e3}) and (\ref{eqn4:e4}) maximize with some
+clusters remaining empty (see Figure~\ref{fig4:f3a}). In this case,
+only information on the non-empty groups is returned. Notice that,
+if we are searching for $k$ clusters, empty clusters can be found
+when a clustering solution for a number of clusters strictly smaller
+than $k$ attains a higher value for (\ref{eqn4:e3}) or
+(\ref{eqn4:e4}) than the best solution found with $k$ clusters. In
+this case, artificial empty clusters may be defined by considering
+sufficiently remote centers $\mu_j$ and scatter matrices $\Sigma_j$
+satisfying the specific constraints that are assigned to these empty
+clusters. They are chosen such that $f(\cdot;\mu_j,\Sigma_j)$ gives
+almost null density to all the observations in the sample. These
+artificially added centers and scatter matrices are not returned as
+output by the \code{tclust} function and a warning is issued. For
+instance, let us consider the following code
+\begin{Code}
+R > set.seed (10)
+R > x <- rbind (rmvnorm (200, c (0, 0), diag (2)),
+    +           rmvnorm (200, c (5, 0), diag (2)))
+R > clus <- tclust (x, k = 3, alpha = 0, restr.fact = 1)
+  Warning messages:
+  1: In .tclust.warn(warnings, ret) :
+    1 empty cluster has been detected - try reducing k.
+  ...
+R > plot (clus)
+\end{Code}
+Although we are searching for $k=3$ clusters, Figure~\ref{fig4:f3a} and
+the issued warning show that only 2 clusters are found. Notice that
+$k=2$ is surely a more sensible choice for the number of clusters
+than $k=3$ for this generated data set. Therefore, the detection of
+empty clusters, or clusters with few data points, can be helpful,
+providing valuable tools for making sensible choices for $k$ as we
+will see in Section~\ref{sec4:kal}. On the other hand, the detection
+of empty clusters is very unlikely to happen when the argument
+\code{equal.weights = TRUE} is provided in the call to
+\code{tclust}.
+
+\section{Algorithms}\label{sec4:alg}
+The maximization of (\ref{eqn4:e3}) or (\ref{eqn4:e4}) considering different
+cluster scatter matrix constraints is not straightforward because of
+the combinatorial nature of the associated maximization problems.
+
+The algorithm presented in \cite{GarG08} can be adapted to
+approximately solve all these problems. The methods implemented in
+\pkg{tclust} could be seen as Classification EM algorithms
+\citep{Sch76,CelG92}, whereas a certain type of ``concentration"
+steps \citep[see the fast-MCD algorithm in][]{RouD98} is also
+applied. In fact, the concentration steps applied by the package
+\pkg{tclust} can be considered as an extension of those applied by
+the batch-mode $k$-means algorithm \citep{Ste56,For65}. It can be
+seen that the target function always increases throughout the
+application of concentration steps, whereas several random start
+configurations are needed in order to avoid ending trapped in local
+maxima. Therefore, \code{nstart} random initializations and
+\code{iter.max} concentration steps are considered. The probability
+that the algorithm converges close to the global optimum maximizing
+(\ref{eqn4:e3}) or (\ref{eqn4:e4}) increases with larger values of
+\code{nstart} and \code{iter.max}. The drawback of high values of
+\code{nstart} and \code{iter.max} obviously is the increasing
+computational effort.
+
+In the concentration step, the centers and scatter matrices are
+updated by considering the cluster sample means and cluster sample
+covariance matrices. New cluster assignments are obtained by
+gathering the ``closest" observations to the new centers.
+Mahalanobis distances, based on the computed cluster sample
+covariance matrices, are used in order to decide which are the
+closest observations to each center. If needed, in the updating
+step, the cluster sample covariance matrices are modified as little
+as possible but in such a way that they satisfy the desired
+constraints \citep{GarG08}. The main idea behind these
+``constrained" concentration steps is to replace the eigenvalues of
+the sample covariance matrices by optimally truncated eigenvalues,
+which satisfy the desired constraint. A more detailed description of
+the algorithm applied by \code{tclust} and the way the restrictions
+are forced onto the cluster scatter matrices can be found in
+\cite{FriG11}.
+
+\section{Comparison with other robust clustering
+proposals}\label{sec4:comp}
+
+In this section, we briefly compare the performance of the
+clustering procedures implemented in the \pkg{tclust} package with
+respect to other robust clustering proposals in the literature.
+
+The Partitioning Around Medoids (PAM) clustering method
+\citep{KauR90} has been proposed as a robust alternative to
+$k$-means clustering. It can be seen that the effect of the 6
+anomalous ``short followed by short" eruptions lengths in the lower
+left corner of Figure~\ref{fig4:f1} do not affect the position of the
+$k$-medoid centers (see Figure~\ref{fig4:pam},(a)) too much, nor the
+resulting clusters. However, in Figure~\ref{fig4:pam},(b), we see
+that the clustering results with $k=3$ are strongly affected when
+moving these 6 anomalous points toward a more distant position. On
+the other hand, in Figure~\ref{fig4:pam},(c), we can see that these
+outlying data points do not affect the trimmed $k$-means based
+clustering at all once that they are trimmed.
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 1 \textwidth]{plots_R-chunk5}
+<<fig=TRUE,echo=false,results=hide,label=chunk5,width=9,height=5>>=
+################
+##  Figure 5  ##
+################
+
+library (cluster)
+data (geyser2)
+
+set.seed (0)
+
+op <- par (mfrow = c (1, 3), mar = c (3.1, 3.1, 3.1, 2.1))
+
+xlab <- "" #names (geyser2)[1]
+ylab <- "" #names (geyser2)[2]
+
+  ## applying PAM on the geyser2 data set
+clus <- pam (geyser2, 3)
+plot (geyser2, xlab = xlab, ylab = ylab, col = clus$clustering + 1,
+      main = "(a) PAM with Geyser")
+points (clus$medoids, pch = "X", cex = 1.4)
+
+  ## modifying the geyser2 data set
+geyser2.mod <- geyser2
+idx <- c (16,  21, 36, 171, 236, 265)
+geyser2.mod[idx,] <- geyser2[idx,] - 12
+
+  ## applying PAM on the modified geyser2 data set
+clus <- pam (geyser2.mod, 3)
+plot (geyser2.mod, xlab = xlab, ylab = ylab, col = clus$clustering + 1,
+      main = "(b) PAM with modified Geyser")
+
+  ## applying tkmeans on the modified geyser2 data set
+clus <- tkmeans (geyser2.mod, k = 3, alpha = 0.03)
+plot (clus, xlab = xlab, ylab = ylab,
+      main = "(c) TCLUST with modified Geyser", sub = "")
+par (op)
+
+@
+\caption{PAM's clustering results for the \code{geyser2} data with
+$3$-medoids denoted by the symbol ``$\times$" in (a). PAM's
+clustering results for a modified \code{geyser2} data set in (b) and
+when applying \code{tkmeans} with $k=3$ and $\alpha=0.03$ in (c).}
+\label{fig4:pam}
+\end{figure}
+
+In fact, only one single outlier placed in a very remote position is
+able to completely break down the PAM method \citep{GarG99}. This
+also happens when applying \pkg{emmix}, which has a breakdown point
+of zero \citep{Hen04}.  The \pkg{emmix} approach is able to obtain
+appropriate clustering results for the two data sets made of
+mixtures of symmetric and asymmetric $t$ components as those shown
+in Figure~\ref{fig4:elt}. These two data sets contain three main
+clusters with some distant observations in the heavy tails of these
+$t$ components, which would be considered as outliers when assuming
+normality. When applying the classification EM algorithm without
+trimming to these data sets, we are not able to find the three
+cluster structures and two main clusters are artificially joined
+together. However, when considering $\alpha =0.05$, \pkg{tclust}
+perfectly avoids the harmful effect of the observations in the tails
+and still discovers the three clusters. In fact, almost all
+non-trimmed observations are correctly clustered in both, symmetric
+and asymmetric, cases. Any  $\alpha >0$ discarding the most outlying
+observations would give similar results. Moreover, it may be seen
+that the shape of the elliptical clusters are essentially discovered
+in the case of the symmetric-elliptical $t$ components. In this
+example, we see that applying \pkg{tclust} to data sets including
+non-normally distributed components as those in
+Figure~\ref{fig4:elt} may result in proper clustering solutions,
+this however cannot be guaranteed if the underlying distributions
+differ too much from normality. The closely related \pkg{tlemix}
+package allows to consider other non-normal models by taking
+advantage of the flexibility provided by the \pkg{FlexMix} package
+\citep{LeiF04}. On the other hand, \pkg{tclust} focuses on normally
+distributed components and on the implementation of appropriate
+cluster scatter matrix constraints while \pkg{tlemix} does not. The
+\pkg{tlemix} mainly controls the minimum number of observations in a
+cluster.
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.9 \textwidth]{plots_R-chunk6}
+<<fig=TRUE,echo=false,results=hide,label=chunk6,width=9,height=6.5>>=
+################
+##  Figure 6  ##
+################
+
+fig.elt <- list ()
+
+library (sn)
+
+op <- par (mfrow = c (2, 3), mar = c (3.1, 2, 3.1, 2))
+
+set.seed (3)
+
+n <- 200
+xlab <- "" #"x1"
+ylab <- "" #"x2"
+
+  ## data generation: Mixture of elliptical t's
+xi <- c (0.5, -1)
+Omega <- diag (2) / 2 + 0.5
+alpha <- c (0, 0)
+rnd1 <- rmst (n, xi, Omega, alpha, nu = 2)
+xi <- c (6, -3)
+Omega <- matrix (c (4, 1, 1, 2), nrow = 2, ncol = 2)
+alpha <- c (0, 0)
+rnd2 <- rmst (n, xi, Omega, alpha, nu = 3)
+xi <- c (-3, 3)
+Omega <- matrix (c (2, 1, 1, 4), nrow = 2, ncol = 2)
+alpha <- c (0, 0)
+rnd3 <- rmst (n, xi, Omega, alpha, nu = 4)
+rnd.1 <- rbind (rnd1, rnd2, rnd3)
+real.clus1 <- c (rep (1, n), rep (2, n), rep (3, n))
+
+ylim <- c (-25, 15)
+  ## Plotting the real clusters
+plot (rnd.1, xlim = c (-15, 80), ylim = ylim, xlab = xlab, ylab = ylab,
+      col = real.clus1 + 1, pch = real.clus1 + 1)
+title ("(a) Elliptical t components", line = 1.6)
+
+  ## applying tclust without trimming
+clus <- tclust (rnd.1, k = 3, alpha = 0.0)
+plot (clus, xlim = c (-15, 80), ylim = ylim, xlab = xlab, ylab = ylab,
+      main.pre = "(b)")
+
+ ## applying tclust with trimming (5%)
+clus <- tclust (rnd.1, k = 3, alpha = 0.05)
+plot (clus, xlim = c (-15, 80), ylim = ylim, xlab = xlab, ylab = ylab,
+      main.pre = "(c)")
+
+  ## data generation: Mixture of non-elliptical t's
+xi <- c (0.5, -1)
+Omega <- diag (2) / 2 + 0.5
+alpha <- c (2, 80)
+rnd1 <- rmst (n, xi, Omega, alpha, nu = 2)
+xi <- c (6, -3)
+Omega <- matrix (c (4, 1, 1, 2), nrow = 2, ncol = 2)
+alpha <- c (2, 2)
+rnd2 <- rmst (n, xi, Omega, alpha, nu = 3)
+xi <- c (-3, 3)
+Omega <- matrix (c (2, 1, 1, 4), nrow = 2, ncol = 2)
+alpha <- c (4, 4)
+rnd3 <- rmst (n, xi, Omega, alpha, nu = 4)
+
+rnd.2 <- rbind (rnd1, rnd2, rnd3)
+real.clus2 <- c (rep (1, n), rep (2, n), rep(3, n))
+
+ylim <- c (-10, 20)
+  ## Plotting the real clusters
+plot (rnd.2, xlim = c (-10, 20), ylim = ylim, xlab = xlab, ylab = ylab,
+      col = real.clus2 + 1, pch=real.clus2 + 1)
+title ("(d) Non-elliptical t components", line = 1.6)
+
+ ## applying tclust without trimming
+clus <- tclust (rnd.2, k = 3, alpha = 0.0)
+plot (clus, xlim = c (-10, 20), ylim = ylim, xlab = xlab, ylab = ylab,
+      main.pre = "(e)")
+
+ ## applying tclust with trimming (5%)
+clus <- tclust (rnd.2, k = 3, alpha = 0.05)
+plot (clus, xlim = c (-10, 20), ylim = ylim, xlab = xlab, ylab = ylab,
+      main.pre = "(f)")
+
+par (op)
+
+
+@
+
+\caption{A data set made up of three elliptical $t$ components is
+shown in (a) and three asymmetrical $t$ components in (d). The
+associated clustering results when applying the \code{tclust}
+function with $k=3$ and $\alpha=0$ are shown in (b) and (e) and with
+$k=3$ and $\alpha=0.05$ in (c) and (f).} \label{fig4:elt}
+\end{figure}
+
+The widely used \pkg{mclust} package considers a uniformly
+distributed component for explaining outlying data points. As we can
+see, this uniform component successfully accommodates the $10\%$
+``background noise" as seen in Figure~\ref{fig4:mclust},(a).
+However, it is not able to cope with a more structured noise pattern
+like the ``helix" in Figure~\ref{fig4:mclust},(c) which also
+accounts for $10\%$ of the data, although the information of a
+$10\%$ contamination level was passed to \pkg{mclust}.
+Alternatively, the \pkg{tclust} package with $k = 2$ and $\alpha =
+0.1$ properly discovers the outlying data points without trying to
+fit them.
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.7 \textwidth]{plots_R-chunk7}
+<<fig=TRUE,echo=false,results=hide,label=chunk7,width=7.14,height=7.8>>=
+
+################
+##  Figure 7  ##
+################
+
+library (mclust)
+
+  ## function for plotting mclust-objects in tclust-style.
+mclustplottcluststyle2d <- function (x, clus, clus.perm, tol.lty = 3,
+                                     size = sqrt (qchisq (0.95, 2)), ...)
+{
+  if (missing (clus.perm))
+    cuse <- clus$classification
+  else
+    cuse <- clus.perm [clus$classification + 1]
+
+  plot (x, col = cuse + 1, pch = cuse + 1, ...)
+
+  k <- ncol (clus$parameters$mean)
+
+  for (i in 1:k)
+    tclust:::.doEllipses (cov = clus$parameters$variance$sigma[,, i],
+                          center = clus$parameters$mean[, i], size = size,
+                          lty = tol.lty)
+}
+
+op <- par (mfrow = c (2, 2), mar = c (3.1, 3.1, 3.1, 2.1))
+
+  ## example 1 - uniformly distributed noise
+
+  ## data generation
+
+set.seed (0)
+x <- rbind (
+            rmvnorm (360, c (0.0,  0), matrix (c ( 1,  0,  0, 1), ncol = 2)),
+            rmvnorm (540, c (5.0, 10), matrix (c ( 6, -2, -2, 6), ncol = 2)),
+            cbind (runif (100, -5, 15), runif (100, -10, 20)))
+
+  ## applying mclust
+noiseInit <- sample (c (TRUE, FALSE), size = nrow (x),
+                     replace = TRUE, prob = c (0.1, 0.9))
+clus <- Mclust (x, initialization = list (noise = noiseInit), G = 2)
+mclustplottcluststyle2d (x, clus, c (0, 2, 1), xlab = "", ylab = "",
+                         main = "(a) mclust", tol.lty = 2)
+
+  ##  applying tclust
+clus <- tclust (x, k = 2, alpha = 0.1)
+plot (clus, xlab = "", ylab = "", main = "(b) tclust", sub = "", tol.lty = 2)
+
+
+  ## example 2 - structured noise
+
+  ## data generation
+set.seed (0)
+v <- runif (100, -2 * pi, 2 * pi)
+noise <- cbind (100 + 25 * sin (v), 10 + 5 * v)
+
+x <- rbind (
+            rmvnorm (360, c (0.0,  0), matrix (c (1,  0,  0, 1), ncol = 2)),
+            rmvnorm (540, c (5.0, 10), matrix (c (6, -2, -2, 6), ncol = 2)),
+            noise)
+
+  ##  applying mclust
+noiseInit <- sample (c (TRUE, FALSE), size = nrow (x),
+                     replace = TRUE, prob = c (0.1, 0.9))
+clus <- Mclust (x, initialization = list (noise = noiseInit), G = 2)
+mclustplottcluststyle2d (x, clus, c (0, 2, 1), xlab = "", ylab = "",
+                         main = "(c) mclust", tol.lty = 2)
+
+  ##  applying tclust
+clus <- tclust (x, k = 2, alpha = 0.1)
+plot (clus, xlab = "", ylab = "", main = "(d) tclust", sub = "", tol.lty = 2)
+
+par (op)
+
+
+@
+
+\caption{Clustering results for two simulated data sets when
+applying \pkg{mclust} with $k=2$ in (a) and (c) and \pkg{tclust}
+with $k=2$ and $\alpha=0.1$ in (b) and (d).} \label{fig4:mclust}
+\end{figure}
+
+Since groups of outliers may be considered as further clusters, it
+could be argued that robust clustering problems can always be solved
+by increasing the number of groups we are searching for. However, as
+explained in \cite{GarG10}, this is not necessarily the best
+strategy. Firstly, sometimes the researcher fixes the number of
+clusters in advance, not being aware of the presence of a small
+amount of outlying observations. Secondly, it could lead to a quite
+large number of clusters when very scattered outliers are present in
+the data set.
+
+A clear limitation of \pkg{tclust} is that it is not applicable on
+high-dimensional data sets, as the method in its current definition
+definitely needs a data set containing more observations than
+dimensions.
+
+\section{Selecting the number of groups and the trimming size}\label{sec4:kal}
+
+Perhaps one of the most complex problems when applying cluster
+analysis is the choice of the number of clusters, $k$. In some cases
+one might have an idea of the number of clusters in advance, but
+usually $k$ is completely unknown. Moreover, in the approach
+proposed here, the trimming proportion $\alpha$ has also to be
+chosen without knowing the true contamination level.
+
+As we will see through the following example, the choices for $k$
+and $\alpha$ are related problems that should be addressed
+simultaneously. It is important to see that a particular trimming
+level implies a specific number of clusters and vice versa. This
+dependency can be explained as entire clusters tend to be trimmed
+completely when increasing $\alpha$. On the other hand, when
+choosing $\alpha$ too low, groups of outliers might form new
+spurious clusters and thus it appears that the number of clusters
+found in the data set is higher. Moreover, the simultaneous choice
+of $k$ and $\alpha$ depends on the  type of clusters we are
+searching for and on the allowed differences between cluster sizes.
+These two aspects can be controlled by the choice of arguments
+\code{restr} and \code{restr.fact}.
+
+To demonstrate the relation between $\alpha$, $k$ and
+\code{restr.fact}, let us consider \code{restr = "eigen"} and the
+data set in Figure~\ref{fig4:f3} which could either be interpreted as a
+mixture of three components (a) or a mixture of two components (b)
+with a $10\%$ outlier proportion. Both clustering solutions shown in
+Figure~\ref{fig4:f3} are perfectly sensible and the final choice of
+$\alpha$ and $k$ only depends on the value given to
+\code{restr.fact}. The code used to obtain Figure~\ref{fig4:f3} is the
+following:
+\begin{Code}
+R > sigma1 <- diag (2)          ## EigenValues: 1, 1
+R > sigma2 <- diag (2) * 8 - 2  ## EigenValues: 8, 4
+R > sigma3 <- diag (2) * 50     ## EigenValues: 50, 50
+R > mixt <- rbind (
+    + rmvnorm (360, mean = c (0.0,  0), sigma = sigma1),
+    + rmvnorm (540, mean = c (5.0, 10), sigma = sigma2),
+    + rmvnorm (100, mean = c (2.5,  5), sigma = sigma3))
+R > plot (tclust (mixt, k = 3, alpha = 0.00, restr.fact = 50))
+R > plot (tclust (mixt, k = 2, alpha = 0.05, restr.fact = 12))
+\end{Code}
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.9 \textwidth]{Plots_R-chunk8}
+<<fig=TRUE,echo=false,results=hide,label=chunk8,width=10,height=5.45>>=
+
+################
+##  Figure 8  ##
+################
+
+  ## data generation
+set.seed (100)
+mixt <- rbind (rmvnorm (360, c (  0,  0), matrix (c (1,  0,  0,  1), ncol = 2)),
+               rmvnorm (540, c (  5, 10), matrix (c (6, -2, -2,  6), ncol = 2)),
+               rmvnorm (100, c (2.5,  5), matrix (c (50, 0,  0, 50), ncol = 2)))
+
+  ## applying tclust
+set.seed (100)
+clus.1 <- tclust (mixt, k = 3, alpha =  0.0, restr.fact = 50, warnings = 2)
+clus.2 <- tclust (mixt, k = 2, alpha = 0.05, restr.fact =  8, warnings = 2)
+
+  ## plotting results
+op <- par (mfrow = c (1, 2))
+plot(clus.1, by.clust = TRUE, col = c (og, 2, 3, 4), pch = c (1, 2, 3, 4),
+     tol.lty = 2, main.pre = "(a)")
+plot(clus.2, by.clust = TRUE, col = c (og, 2, 3), pch = c (1, 2, 3),
+     tol.lty = 2, main.pre = "(b)")
+par (op)
+
+
+@
+\caption{Clustering results for the simulated data set \code{mixt}
+with $k=3$, $\alpha=0$ and \code{restr.fact} $= 50$ (a) and $k=2$,
+$\alpha=0.1$ and \code{restr.fact} $=8$ (b).} \label{fig4:f3}
+\end{figure}
+
+Considering \code{sigma1} and \code{sigma2}, the quotient of the
+largest and smallest eigenvalue is 8, whereas the maximal quotient
+is 50 if we consider \code{sigma1}, \code{sigma2} and \code{sigma3}.
+Thus \code{restr.fact} $=8$ would allow to consider two clusters
+while \code{restr.fact} $=50$ would also allow to assume three
+groups there. Although the proportion of ``contaminated" data is
+equal to $10\%$, the trimming level must be reduced to $5\%$, when
+considering $k=2$, because the third (more scattered) gaussian
+component partially overlaps with the other two components.
+
+Let us assume first that \code{restr} and \code{restr.fact} have
+been fixed in advance by the researcher who applies the robust
+clustering method. Even with this information and assuming
+$\alpha=0$, choosing the appropriate number of clusters is not an
+easy task. The careful monitoring of the maximum value attained by
+log-likelihoods like those in (\ref{eqn4:e3}) and (\ref{eqn4:e4}) while
+changing $k$ has traditionally been applied as a method for choosing
+the number of clusters when $\alpha=0$. Moreover \cite{BryP91}
+stated that the use of ``weighted" log-likelihoods (\ref{eqn4:e4}) is
+preferred to the use of log-likelihoods assuming equal weights
+(\ref{eqn4:e3}). Notice that increasing $k$ always causes the maximized
+log-likelihood (\ref{eqn4:e3}) to increase too, and this could lead to
+``overestimate" the appropriate number of clusters
+\citep[see][]{GarG11}.
+
+In this trimming framework, let us consider
+$\mathcal{L}_{\texttt{restr.fact}}^{\Pi}(\alpha,k)$ as the maximum
+value reached by (\ref{eqn4:e4}) for each combination of a given set of
+values for $k$ and $\alpha$. \cite{GarG11} propose to monitor the
+``classification trimmed likelihoods" functionals
+$$(\alpha,k)\mapsto \mathcal{L}_{\texttt{restr.fact}}^{\Pi}(\alpha,k)$$
+while altering $\alpha$ and $k$, which yields an exploratory
+graphical tool for making sensible choices for parameters $\alpha$
+and $k$. In fact, it is proposed to choose the number of clusters as
+the smallest value of $k$ such that
+\begin{equation}\label{eqn4:diff}
+    \mathcal{L}_{\texttt{restr.fact}}^{\Pi}(\alpha,k+1)-\mathcal{L}_{\texttt{restr.fact}}^{\Pi}(\alpha,k)
+\end{equation}
+is (close to) 0 except for small values of $\alpha$. Once the number
+of clusters is fixed, a good choice for the trimming level is the
+first $\alpha_0$ such that (\ref{eqn4:diff}) is (close to) 0 for every
+$\alpha\geq \alpha_0$. Although we are convinced that monitoring the
+classification trimmed likelihoods functionals is very informative,
+no theoretical statistical procedures are available yet for
+determining when (\ref{eqn4:diff}) can be formally considered as ``close
+to 0".
+
+The function \code{ctlcurves} in package \pkg{tclust} approximates
+the classification trimmed likelihoods by successively applying the
+\code{tclust} function for a sequence of values of $k$ and $\alpha$.
+A default value  \code{restr.fact = 50} is considered but, if
+desired, other values of \code{restr.fact} can be passed to
+\code{tclust} via \code{ctlcurves} too.
+
+For instance, the following code applied to the previously simulated
+\code{mixt} data set
+\begin{Code}
+R > plot (ctlcurves (mixt, k = 1:4, alpha = seq (0, 0.2, by = 0.05)))
+\end{Code}
+results in Figure~\ref{fig4:f4}. This figure shows that increasing
+$k$ from 2 to 3 is needed when $\alpha=0$, as the objective
+functions value differs noticeably between $k = 2$ and $k = 3$. On
+the other hand, increasing $k$ from 2 to 3 is not needed anymore as
+the third (more scattered) ``cluster" vanishes when trimming 5\% of
+the most outlying observations. Thus, there is no discernable
+difference of the objective functions value with $\alpha \geq
+\alpha_0=0.05$ and $k \geq 2$. Increasing $k$ from 3 to 4 is not
+needed in any case.
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.65 \textwidth]{Plots_R-chunk9}
+<<fig=TRUE,echo=false,results=hide,label=chunk9,width=7.14,height=6.25>>=
+
+################
+##  Figure 9  ##
+################
+
+  ## computing ctlcurves
+ctl <- ctlcurves (mixt, restr.fact = 50, alpha = seq (0, 0.2, by = 0.05))
+
+op <- par (mfrow = c (1, 1))
+plot (ctl)
+par (op)
+
+@
+
+\caption{Classification trimmed likelihoods with $k=1,...,4$,
+$\alpha=0,$ $0.05$, ..., $0.2$ and \code{restr.fact} $=50$ for the
+\code{mixt} data set in Figure~\ref{fig4:f3}.} \label{fig4:f4}
+\end{figure}
+
+The previously described procedure for making sensible choices for
+parameters $k$ and $\alpha$ requires an active role from the
+researcher. The type of restriction and the allowed restriction
+factor, which do not necessarily depend on the given data set, must
+be specified in advance. For instance, some specific clustering
+applications like ``location-facilities" problems require almost
+spherical clusters that can be obtained by setting \code{restr =
+"eigen"} and a \code{restr.fact} close to 1. The researcher's
+decision on the restriction consequently modifies the proper
+determination of parameters $k$ and $\alpha$.
+
+
+Due to the important role of the statement of \code{restr} and
+\code{restr.fact}, some general guideline for fixing them will be
+given here. For instance, as already commented, fixing \code{restr =
+"deter"} is recommended when only the relative cluster sizes shall
+be constrained, or when affine equivariance is clearly needed. On
+the other hand, using \code{restr = "eigen"} is advised when we want
+to simultaneously constrain relative cluster sizes and shapes.
+
+With respect to the choice of \code{restr.fact}, we recommend to
+initially use large values when applying \code{ctlcurves}, thus,
+providing high flexibility to the clustering method. The default
+value \code{restr.fact = 50} is suggested for \code{ctlcurves}, as
+it worked well with a lot of data sets (especially if the variables
+have been properly standardized through the \code{scale} argument in
+the \code{tclust} function). The so obtained ``sensible" values for
+$k$ and $\alpha$ and their associated clustering solutions must be
+explored carefully. For instance, \code{tclust} issues a warning
+when the returned clustering solution has been ``artificially
+restricted" by the algorithm, as shown in Section~\ref{sec4:exa}.
+This means, that the values $M_n$ and $m_n$ (see
+Section~\ref{sec4:consteig} and Section~\ref{sec4:constdet}) derived
+from the returned scatter matrices satisfy $M_n/m_n =$
+\code{restr.fact}, because the algorithm has forced the chosen
+constraint, since the (unconstrained) group sample covariance
+matrices do not satisfy $M_n/m_n \leq$ \code{restr.fact}. In this
+situation, if no specific constraints are required,
+\code{restr.fact} may be increased stepwise until this warning
+disappears. Moreover, printing the object returned by the
+\code{ctlcurves} function points out all ``artificially restricted"
+solutions for each computed combination of parameters $k$ and
+$\alpha$. In this way, if desired, we can easily search for
+clustering solutions which are not artificially restricted and do
+not contain spurious clusters. Finally, the exploratory tools in
+Section~\ref{sec4:gra} also help to evaluate whether all these
+parameters are reasonably chosen.
+
+Note that arguments \code{nstart} and \code{iter.max} may be
+provided in the call to \code{ctlcurves} and they are internally
+passed to function \code{tclust}.
+
+The curves presented in \cite{GarG03} can be considered as
+precedents of those we obtain by using the \code{ctlcurves}
+function. Trimmed likelihoods have also been taken into account in
+\cite{NeyF07} for choosing $k$ and $\alpha$ by using a BIC
+criterion.
+
+\section{Graphical displays}\label{sec4:gra}
+As seen in previous examples, the package \pkg{tclust} provides
+functions for visualizing the computed cluster assignments.
+One-dimensional, two-dimensional and higher-dimensional cases are
+visualized differently:
+\begin{description}
+\item[$p = 1$:] The one-dimensional data set with the corresponding cluster assignments is
+ displayed along the $x$-axis. Setting the argument \code{jitter = TRUE} jitters
+  the data along the $y$-axis in order to increase the visibility of the actual
+ data structure. Additionally, a (robust) scatter
+ estimation of each cluster is also displayed.
+\item[$p = 2$:] Tolerance ellipsoids are plotted additionally in order to
+visualize the estimated cluster scatter matrices.
+\item[$p > 2$:] The first two Fisher's canonical coordinates are displayed in
+this case, which are computed based on the estimated cluster scatter
+matrices. Notice that trimmed observations are not taken into
+account when computing these coordinates, since they have been
+completely discarded. The implementation of these canonical
+coordinates is derived from the function \code{discrcoord} as
+implemented in the package \pkg{fpc} \citep{HenC10}.
+\end{description}
+
+A simple example demonstrates how the \code{plot} function works in
+different dimensions. The code:
+\begin{Code}
+R > geyser1 <- geyser2[, 1, drop = FALSE]
+R > geyser3 <- cbind (geyser2, rnorm (nrow (geyser2)))
+R > plot (tkmeans (geyser1, k = 2, alpha = 0.03), jitter = TRUE)
+R > plot (tkmeans (geyser3, k = 3, alpha = 0.03))
+\end{Code}
+yields Figure~\ref{fig4:f5a}. For demonstrating the different plotting
+modes, we have selected one single variable from \code{geyser2} to
+obtain a one-dimensional data set (\code{geyser1}), and, added an
+additional normally distributed variable to \code{geyser2}, yielding
+a three-dimensional data set (\code{geyser3}). Figure~\ref{fig4:f5a}
+plots the results of the trimmed $k$-means robust clustering method
+for these two generated data sets.
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.9 \textwidth]{Plots_R-chunk10}
+<<fig=TRUE,echo=false,results=hide,label=chunk10,width=10,height=5.45>>=
+#################
+##  Figure 10  ##
+#################
+
+data (geyser2)
+op <- par (mfrow = c (1, 2))
+set.seed (10)
+
+  ## creating a one dimensional data "matrix"
+geyser1 <- geyser2[, 1, drop = FALSE]
+  ## applying tkmeans
+plot (tkmeans (geyser1, k = 2, alpha = 0.03), jitter = TRUE, tol.lwd = 2,
+      main.pre = "(a)")
+
+  ## adding a random dimension to geyser2
+geyser3 <- cbind (geyser2, rnorm (nrow (geyser2)))
+  ## applying tkmeans
+plot (tkmeans (geyser3, k = 3, alpha = 0.03), main.pre = "(b)")
+
+par (op)
+
+@
+\caption{Trimmed $k$-means clustering results for \code{geyser1}
+(one-dimensional) in (a) and for \code{geyser3} (three-dimensional)
+in (b). These two data sets are based on \code{geyser2}. $k=2$ is
+fixed in (a) and $k = 3$ in (b) while $\alpha=0.03$ is fixed in both
+cases.} \label{fig4:f5a}
+\end{figure}
+
+Given a \code{tclust} object, some additional exploratory graphical
+tools can be applied in order to evaluate the quality of the cluster
+assignments and the trimming decisions. This is done by applying the
+function \code{DiscrFact}.
+
+Let $\widehat{R}=\{\widehat{R_0},\widehat{R_1},...,\widehat{R_k}\}$,
+$\widehat{\theta}=(\widehat{\theta_1},...,\widehat{\theta_k})$ and
+$\widehat{\pi}=(\widehat{\pi_1},...,\widehat{\pi_k})$ be the values
+obtained by maximizing  (\ref{eqn4:e3}) or (\ref{eqn4:e4}) (we set
+$\widehat{\pi_j}=1/k$ when maximizing (\ref{eqn4:e3})).
+$D_j(x_i;\widehat{\theta},\widehat{\pi})=\widehat{\pi_j}\phi(x_i,\widehat{\theta_j})$
+is a measure of the degree of affiliation of observation $x_i$ with
+cluster $j$. These values can be ordered as
+$D_{(1)}(x_i;\widehat{\theta},\widehat{\pi}) \leq ... \leq
+D_{(k)}(x_i;\widehat{\theta},\widehat{\pi})$. Thus the quality of
+the assignment decision of a non trimmed observation $x_i$ to the
+cluster $j$ with
+$D_{(k)}(x_i;\widehat{\theta},\widehat{\pi})=D_{j}(x_i;\widehat{\theta},\widehat{\pi})$
+can be evaluated by comparing its degree of affiliation with cluster
+$j$ to the best second possible assignment. That is
+$$\text{DF}(i)=\log\big(D_{(k-1)}(x_i;\widehat{\theta},\widehat{\pi})/D_{(k)}(x_i;\widehat{\theta},\widehat{\pi})\big)
+\text{ for }x_i\text{ not trimmed}.$$
+
+Let $x_{(1)},... ,x_{(n)}$ be the observations in the sample after
+being sorted according to their
+$D_{(k)}(\cdot;\widehat{\theta},\widehat{\pi})$ values, i.e., $
+D_{(k)}(x_{(1)};\widehat{\theta},\widehat{\pi}) \leq ... \leq
+D_{(k)}(x_{(n)};\widehat{\theta},\widehat{\pi}).$ It is not
+difficult to see that $x_{(1)},... , x_{(\rounding{n\alpha})}$ are
+the trimmed observations which are not assigned to any cluster.
+Nevertheless, it is possible to compute the degree of affiliation
+$D_{(k)}(x_i;\widehat{\theta},\widehat{\pi})$ of a trimmed
+observation $x_i$ to its nearest cluster. Thus, the quality of the
+trimming decision on this observation can be evaluated by comparing
+$D_{(k)}(x_i;\widehat{\theta},\widehat{\pi})$ to
+$D_{(k)}(x_{(\rounding{n\alpha}+1)};\widehat{\theta},\widehat{\pi})$,
+with $x_{(\rounding{n\alpha}+1)}$ being the non-trimmed observation
+with smallest value of
+$D_{(k)}(\cdot;\widehat{\theta},\widehat{\pi})$. That is
+$$\text{DF}(i)=\log\big(
+D_{(k)}(x_i;\widehat{\theta},\widehat{\pi})/D_{(k)}(x_{(\rounding{n\alpha}+1)};\widehat{\theta},\widehat{\pi})\big)\text{
+for }x_i\text{ trimmed}.
+$$
+Hence, discriminant factors $\text{DF}(i)$ $\leq 0$ are obtained for
+every observation in the data set, whether trimmed or not.
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.9 \textwidth]{Plots_R-chunk11}
+<<fig=TRUE,echo=false,results=hide,label=chunk11,width=9,height=6.5>>=
+
+#################
+##  Figure 11  ##
+#################
+
+  ## data generation
+set.seed (100)
+mixt2 <- rbind (
+  rmvnorm (360, c (0,   0), matrix (c (1,  0,  0,  1), ncol = 2)),
+  rmvnorm (540, c (5,  10), matrix (c (6, -2, -2,  6), ncol = 2)),
+  rmvnorm (100, c (2.5, 5), matrix (c (50, 0,  0, 50), ncol = 2))
+)
+
+  ## applying tclust
+set.seed (100)
+clus.w <- tclust (mixt2, k = 3, alpha = 0.1, restr.fact = 1,
+                  equal.weights = TRUE, warnings = 1)
+
+  ## applying DiscrFact
+discr.clus.w <- DiscrFact (clus.w)
+
+  ## plotting results
+op <- par (mfrow = c (1, 3), mar = mmar)
+
+plot (clus.w, col = c (og, 2, 3, 4), tol.lty = 2, main.pre = "(a)")
+plot_DiscrFact_p2 (discr.clus.w, xlim = c (-70, 0), main.pre = "(b)")
+plot_DiscrFact_p3 (discr.clus.w, tol.lty = 2, main.pre = "(c)")
+
+par (op)
+@
+\caption{Graphical displays based on the $\text{DF}(i)$ values for a
+\code{tclust} cluster solution obtained with $k=3$, $\alpha=0.1$,
+\code{restr.fact} $= 1$ and \code{equal.weights = TRUE} for the
+\code{mixt} data set.} \label{fig4:f5}
+\end{figure}
+
+Observations with large $\text{DF}(i)$ values (i.e., values close to
+zero) indicate doubtful assignments or trimming decisions. The use
+of this type of discriminant factors was already suggested in
+\cite{AelW06} in a clustering problem without trimming.
+``Silhouette" plots \citep{RouP87} can be used for summarizing the
+obtained ordered discriminant factors. Clusters in the silhouette
+plot with many large $\text{DF}(i)$ values indicate the existence of
+not very ``well-determined" clusters. The most ``doubtful"
+assignments with $\text{DF}(i)$ larger than a
+$\log(\texttt{threshold})$ value are highlighted by the function
+\code{DiscrFact}.
+
+Figure~\ref{fig4:f5} shows the result of applying the \code{DiscrFact}
+function to a clustering solution found for the \code{mixt} data set
+appearing in Figure~\ref{fig4:f3}. The following code is used to obtain
+this figure:
+
+\begin{Code}
+R > clus.w <- tclust (mixt, k = 3, alpha = 0.1, restr.fact = 1,
+    + equal.weights = TRUE)
+R > discr.clus.w <- DiscrFact (clus.w, threshold = 0.1)
+R > plot (discr.clus.w)
+\end{Code}
+
+The choice \code{threshold} $= 0.1$ means that a decision on a
+particular observation $x_i$ is considered as doubtful, if the
+quality of the second best possible decision
+($D_{(k-1)}(x_i;\widehat{\theta},\widehat{\pi})$ or
+$D_{(k)}(x_{(\rounding{n\alpha}+1)};\widehat{\theta},\widehat{\pi})$
+for trimmed observations) is larger than one tenth of the quality
+of the actually made decision
+($D_{(k)}(x_i;\widehat{\theta},\widehat{\pi})$).
+
+Although Figure~\ref{fig4:f4} suggests to choose $k = 2$, $k$ has been
+increased to $3$ in order to show how such a change leads to
+doubtful cluster assignment decisions which can be visualized by
+\code{DiscrFact}. Figure~\ref{fig4:f5},(a) simply illustrates the cluster
+assignments and trimming decisions. The mentioned silhouette plot is
+presented in (b), whereas the doubtful decisions are marked in (c).
+All observations with $\text{DF}(i) \geq \log(0.1)$ are highlighted
+as they are plotted darker/in color. Most of the doubtful decisions
+are located in the overlapping area of the two artificially found
+clusters (highlighted symbols ``$\times$" and ``$+$"). Some
+doubtfully trimmed observations (highlighted symbol ``$\circ$") are
+located in the boundaries of these two clusters.
+
+\section{Swiss Bank notes data}\label{sec4:exa}
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.65 \textwidth]{plots_R-chunk12}
+<<fig=TRUE,echo=false,results=hide,label=chunk12,width=7.14,height=6.25>>=
+#################
+##  Figure 12  ##
+#################
+
+data (swissbank)
+set.seed (0)
+fig6.ctl <- ctlcurves (swissbank, k = 1:4, alpha = seq (0, 0.3, by = 0.025),
+                       restr.fact = 50, iter.max = 100, nstart = 100)
+
+op <- par (mfrow = c (1, 1), mar = mmar)
+plot (fig6.ctl)
+
+par (op)
+@
+\caption{Classification trimmed likelihoods for $k=1,...,4$ and
+$\alpha=0,$ $.025$, ..., $.3$ when \code{restr.fact} $=50$ for the
+``Swiss Bank notes" data set.} \label{fig4:f6}
+\end{figure}
+The well-known ``Swiss Bank notes" data set includes 6 numerical
+measurements (six-dimensi\-onal data set) made on 100 genuine and
+100 counterfeit old Swiss 1000-franc bank notes \citep{FluR88}. The
+following code can be used to obtain the classification trimmed
+likelihoods shown in Figure~\ref{fig4:f6}.
+\begin{Code}
+R > data ("swissbank")
+R > plot (ctlcurves (swissbank, k = 1:4, alpha = seq (0, 0.3, by = 0.025)))
+\end{Code}
+This figure indicates the clear existence of $k=2$ main clusters
+(``genuine" and ``forged" bills). Moreover, considering the clear
+difference between $\mathcal{L}_{\texttt{50}}^{\Pi}(0,3)$ and
+$\mathcal{L}_{\texttt{50}}^{\Pi}(0,2)$, we can see that a further
+cluster, i.e., $k=3$, is needed when no trimming is allowed. This
+extra cluster can be justified by the heterogeneity of the group of
+forgeries (perhaps due to the presence of different sources of
+forged bills).
+
+\begin{figure}[t!]
+\centering
+%\includegraphics[width= 0.9 \textwidth]{plots_R-chunk13}
+
+<<fig=TRUE,echo=false,results=hide,label=chunk13,width=9,height=6.5>>=
+#################
+##  Figure 13  ##
+#################
+
+fig7.clus <- tclust (swissbank, k = 2, alpha = .1, restr.fact = 50)
+fig7.discrfact <- DiscrFact (fig7.clus, threshold = .000125)
+
+op <- par (mfrow = c (1, 3), mar = mmar)
+plot (fig7.discrfact, enum = TRUE)
+par (op)
+@
+\caption{Clustering results with $k=2$, $\alpha = 0.1$ and
+\code{restr.fact} $=50$ summarized by the use of \code{DiscrFact}
+function for the ``Swiss Bank notes" data set. The threshold value
+is chosen in order to highlight the 7 most doubtful cluster
+assignments.} \label{fig4:f7}
+\end{figure}
+
+Considering Figure~\ref{fig4:f6}, the choice $k=2$ and a value of
+$\alpha$ close to 0.1 also seem sensible. Notice that
+$\mathcal{L}_{50}^{\Pi}(\alpha,3)$ is clearly larger than
+$\mathcal{L}_{50}^{\Pi}(\alpha,2)$ for $\alpha < 0.1$ while these
+differences are not so big when $\alpha \geq 0.1$. We can even see
+smaller differences in the classification trimmed likelihood curves
+when increasing $k$ from 3 to 4. However, these differences are less
+significant than those previously commented. More spurious clusters
+can be surely found but they have less entity and importance.
+
+Figure~\ref{fig4:f7} shows the clustering results with $k=2$, $\alpha =
+0.1$ and \code{restr.fact = 50} obtained by executing the code:
+\begin{Code}
+R > clus <- tclust (swissbank, k = 2, alpha = 0.1, restr.fact = 50)
+R > plot (DiscrFact (clus, threshold = 0.0001))
+\end{Code}
+
+Notice that, in this example, we did not want to impose a specific
+constraint on the solution. Thus, the default parameter
+\code{restr.fact = 50} has initially been used in \code{ctlcurves}.
+After choosing the combination $\alpha = 0.10$ and $k = 2$, we could
+try to reduce the restriction factor which resulted in a warning:
+
+\begin{Code}
+R > tclust (swissbank, k = 2, alpha = 0.1, restr.fact = 40)
+In .tclust.warn(warnings, ret):
+  The result is artificially constrained due to restr.fact = 40.
+\end{Code}
+
+Thus the choice \code{restr.fact = 50} seems appropriate as it does
+not artificially restrict the result, whereas a slightly smaller
+restriction factor (40) does. By examining the sizes of the obtained
+groups, we see that no spurious groups are found with
+\code{restr.fact = 50}:
+\begin{Code}
+R > clus$size
+  [1] 95 85
+\end{Code}
+
+We have used \code{restr = "eigen"} in this example, but \code{restr
+= "deter"} can be also successfully applied  with smaller values of
+\code{restr.fact}.
+
+We also use the function \code{DiscrFact} to summarize the obtained
+clustering results. The two first Fisher's canonical coordinates
+derived from the final cluster assignments are plotted. The
+threshold value 0.0001 is chosen in order to highlight the 7 most
+doubtful decisions.
+
+Finally, Figure~\ref{fig4:f8} shows a scatterplot of the fourth
+(``Distance of the inner frame to lower border") against the sixth
+variable (``Length of the diagonal") with the corresponding cluster
+assignments. We use the symbols ``\code{G}" for the genuine bills
+and ``\code{F}" for the forged ones. The 7 most doubtful decisions
+(i.e., the observations with largest $\text{DF}(i)$ values that were
+highlighted in Figure~\ref{fig4:f7},(c)) are surrounded by circles in
+this figure.
+\begin{figure}[t!]
+\centering
+%\includegraphics[clip,width= 0.9 \textwidth]{plots_R-chunk14}
+<<fig=TRUE,echo=false,results=hide,label=chunk14,width=9,height=6.5>>=
+
+#################
+##  Figure 14  ##
+#################
+
+
+clus <- tclust (swissbank, k = 2, alpha=.1, restr.fact=50)
+discrfact <- DiscrFact (clus)
+pch <- c (rep ("G", 100), rep ("F", 100))
+condition <- discrfact$assignfact > log (.000125)
+cl <- clus$cluster
+data (swissbank)
+op <- par (mfrow = c (1, 3), mar = mmar)
+
+xlab <- "Distance of the inner frame to lower border"
+ylab <- "Length of the diagonal"
+
+plot (swissbank[, 4], swissbank[, 6], col = "darkgrey", pch = pch,
+      main = "(a) Cluster1", xlab = xlab, ylab = ylab)
+
+cl1 <- cl == 1
+points (swissbank[cl1, 4], swissbank[cl1, 6], pch = pch[cl1], col = 2)
+idx <- (cl1) & condition
+points (swissbank[idx, 4], swissbank[idx, 6], pch = 1, cex = 4, col = "blue")
+
+plot (swissbank[, 4], swissbank[, 6], col = "darkgrey", pch = pch,
+      main = "(b) Cluster2", xlab = xlab, ylab = ylab)
+cl2 <- cl == 2
+points (swissbank[cl2, 4], swissbank[cl2, 6], pch = pch[cl2], col = 3)
+idx <- (cl2) & condition
+points (swissbank[idx, 4], swissbank[idx, 6], pch = 1, cex = 4, col = "blue")
+
+cl0 <- cl == 0
+plot (swissbank[, 4], swissbank[, 6], col = "darkgrey", pch = pch,
+      main = "(c) Trimmed", xlab = xlab, ylab = ylab)
+
+points (swissbank[cl0, 4], swissbank[cl0, 6], pch = pch[cl0])
+idx <- (cl0) & condition
+points (swissbank[idx, 4], swissbank[idx, 6], pch = 1, cex = 4, col = "blue")
+par (op)
+
+
+@
+\caption{Clustering results with $k=2$, $\alpha=.1$ and \code{restr.fact} $=50$ for the ``Swiss Bank notes" data set. Only the fourth and sixth variables
+are plotted. The 7 most doubtful decisions are rounded by a circle symbol.} \label{fig4:f8}
+\end{figure}
+We can see that ``Cluster 1" essentially includes most of the
+``forged" bills while ``Cluster 2" includes most of the ``genuine"
+ones. Among the trimmed observations, we can find a subset of 15
+forged bills following a clearly different forgery pattern that has
+been previously commented by other authors \citep[see,
+e.g.,][]{FluR88,CooP99}. These most doubtful assignments include 5
+``genuine" bills that have perhaps been wrongly trimmed.
+
+\section{Conclusion}\label{sec4:con}
+This paper presents a package called \pkg{tclust} for robust
+(non-hierarchical) clustering. The implementation is flexible, so
+only the restrictions on the cluster scatters have to be changed in
+order to carry out different robust clustering algorithms.
+Robustness is achieved by trimming a specific proportion of
+observations which are identified as the ``most outlying" ones.
+
+Although this \proglang{R}-package implements robust clustering
+approaches which have already been described in the literature, some
+of these approaches have been extended to provide increased
+flexibility. The package also provides some graphical tools which on
+the one hand help to chose appropriate parameters (\code{ctlcurves})
+and on the other hand help to estimate the adequacy of a particular
+clustering solution (\code{DiscrFact}).
+
+Future work on this package focuses on implementing additional types
+of scatter restrictions, making the algorithm even more flexible,
+and on providing numerical tools for automatically choosing the
+number of clusters and the trimming proportion.
+
+\section*{Acknowledgements:}This research is partially supported by
+the Spanish Ministerio de Ciencia e Innovaci\'{o}n, grant
+MTM2011-28657-C02-01. We would like to thank the reviewers and the
+editor whose comments and suggestions greatly helped in improving
+the content and the presentation of this paper.
+
+\bibliography{tclust}
+
+\end{document}

@@ -1,0 +1,40 @@
+useDynLib(tclust, .registration = TRUE)
+
+# Import all packages listed as Imports or Depends
+importFrom("grDevices", "grey")
+importFrom("graphics", "abline", "axis", "box", "legend", "lines",
+         "mtext", "par", "plot", "plot.new", "points", "polygon",
+         "text", "title")
+importFrom("stats", "cov", "mahalanobis", "qchisq", "rnorm", "runif")
+importFrom("utils", "flush.console")
+
+export(
+    tclust,
+    print.tclust,
+    plot.tclust,
+    tkmeans,
+#    print.tkmeans,
+    plot.tkmeans,
+    DiscrFact,
+    plot.DiscrFact,
+    print.DiscrFact,
+    plot_DiscrFact_p2,
+    plot_DiscrFact_p3,
+    summary.DiscrFact,
+    discr_coords,
+    ctlcurves,
+    print.ctlcurves,
+    plot.ctlcurves
+)
+
+S3method (print, tclust)
+S3method (print, DiscrFact)
+S3method (print, ctlcurves)
+S3method (plot, tclust)
+S3method (plot, DiscrFact)
+S3method (plot, ctlcurves)
+S3method (plot, tkmeans)
+#S3method (print, tkmeans)
+S3method (summary, DiscrFact)
+
+
