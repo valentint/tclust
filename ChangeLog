@@ -1,11 +1,14 @@
-2023-03-22  Valentin Todorov  <valentin.todorov@chello.at>
+2023-03-23  Valentin Todorov  <valentin.todorov@chello.at>
     *
+	* DESCRIPTION (Version): 1.5-4
 	* DESCRIPTION (Version): 1.5-3
     *
-    * src/clust.cpp, tclust.cpp: Fixed warnings Wuninitialized, like: 
+    * src/clust.cpp, tclust.cpp: Fixed warnings Wuninitialized, like:
     *   warning: base class 'CClust' is uninitialized when used here to access 'CClust::m_p' [-Wuninitialized]
     *   see mail of Prof.Ripley from 21.03.2023
     *
+    * inst/Citation: used the new style bibentry() instead of the old one citEntry()
+    * 
 
 2022-10-24  Valentin Todorov  <valentin.todorov@chello.at>
     *

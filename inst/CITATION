@@ -1,21 +1,14 @@
-citHeader("To cite tclust in publications use:")
+citHeader("To cite the 'tclust' package in publications use:")
 
-citEntry(entry = "Article",
-  title        = "{tclust}: An {R} Package for a Trimming Approach to Cluster Analysis",
-  author       = personList(
-                    as.person("Heinrich Fritz"),
-                    as.person("Luis A. Garcia-Escudero"),
-                    as.person("Agustin Mayo-Iscar")),
-  journal      = "Journal of Statistical Software",
-  year         = "2012",
-  volume       = "47",
-  number       = "12",
-  pages        = "1--26",
-  doi          = "10.18637/jss.v047.i12",
-  textVersion  =
-    paste("Heinrich Fritz, Luis A. Garcia-Escudero, Agustin Mayo-Iscar (2012).",
-          "tclust: An R Package for a Trimming Approach to Cluster Analysis.",
-          "Journal of Statistical Software, 47(12), 1-26.",
-          "DOI:  10.18637/jss.v047.i12.")
-)
-
+bibentry(bibtype = "Article",
+         title = "{tclust}: An {R} Package for a Trimming Approach to Cluster Analysis",
+         journal = "Journal of Statistical Software",
+         author = c(person(given = "Heinrich", family = "Fritz"),
+                    person(given = c("Luis", "A."), family = "Garcia-Escudero"),
+                    person(given = "Agustin", family = "Mayo-Iscar")),
+         year = "2012",
+         volume = "47",
+         number = "12",
+         pages = "1--26",
+         doi = "10.18637/jss.v047.i12"
+         )
