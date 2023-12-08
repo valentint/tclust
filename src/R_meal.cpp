@@ -139,6 +139,8 @@
 		Rvprintf (sz, va_l) ;
 	}
 
+	// VT::07.12.2023 - fix warning format string is not a string literal (potentially insecure)
+    /*
 	void meal_warning (const char *sz)
 	{
 		Rf_warning (sz) ;
@@ -148,7 +150,8 @@
 	{
 		Rf_error (sz) ;
 	}
-
+    */
+    
 	void *meal_alloc (size_t n, int s)
 	{
 		return calloc (n, s) ;
@@ -180,7 +183,10 @@
 			"\n"
 			"  Your contribution is appreciated!\n\n",
 			GetRealSettings ().GetEmail (), szFile, nLine) ;
-		meal_error ("An exception has occurred.") ;
+		
+        // VT::07.12.2023 - fix warning format string is not a string literal (potentially insecure)
+		// meal_error ("An exception has occurred.") ;
+        Rf_error("An exception has occurred.");
 	}
 
 	void meal_OnUException ()
@@ -198,6 +204,9 @@
 			"\n"
 			"  Your contribution is appreciated!\n\n",
 			GetRealSettings ().GetEmail ()) ;
-		meal_error ("An unknown exception has occurred.") ;
+
+		// VT::07.12.2023 - fix warning format string is not a string literal (potentially insecure)
+		// meal_error ("An unknown exception has occurred.") ;
+        Rf_error("An unknown exception has occurred.");
 	}
 #endif	//	#ifdef R_PACKAGE_FILE

@@ -185,9 +185,7 @@
         iter$code <- all (old.z_ij == iter$z_ij)				##	setting the code - parameter, signaling whether the assig - array is still the same
 
 		iter$csize <- colSums (iter$z_ij)						##	calculating the cluster size
-	}
-	else
-	{
+	} else {
 		old.assig <- iter$assig
 		iter$assig <- apply(ll,1,which.max)						#o	searching the cluster which fits best for each observation
 #n		iter$assig <- apply(ll, 1, select.clust, pa = pa)		##	searching the cluster which fits best for each observation
@@ -206,7 +204,13 @@
 		iter$z_ij<- matrix (0, ncol = pa$K, nrow = pa$n)		##	calculating "absolute z_ij" for !pa$fuzzy, which only contains 0 and 1
 
 #o		iter$z_ij[cbind ((1:pa$n)[idx.out>pa$trim], iter$assig[idx.out>pa$trim])] <- 1		
-		iter$z_ij[cbind (1:pa$n, iter$assig)[-idx.out, ]] <- 1	#n	using the "real" idx.out - vector	
+
+        ## VT::28.11.2023 - it will not work if alpha=0!
+        if(length(idx.out) > 0)	
+		  iter$z_ij[cbind (1:pa$n, iter$assig)[-idx.out, ]] <- 1	 #n	using the "real" idx.out - vector	
+        else
+		  iter$z_ij[cbind (1:pa$n, iter$assig)] <- 1	             #n	using the "real" idx.out - vector	
+        
 
 #n		idx.max <- cbind (1:pa$n, iter$assig)					##
 #n		iter$z_ij[idx.max[,idx.out>pa$trim]] <- 1

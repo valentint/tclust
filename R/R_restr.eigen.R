@@ -26,8 +26,7 @@
 
 	n <- sum(ni.ini)
 
-	nis <- matrix(data=ni.ini,nrow=K,ncol=p)
-
+	nis <- matrix(data=ni.ini, nrow=K, ncol=p)
 																		#m	MOVED: this block has been moved up a bit. see "old position of "block A" for it's old occurrence
 	idx.nis.gr.0 <- nis > zero.tol										#n	as nis is in R we have to be carefull when checking against 0
 	used.ev <- ni.ini > zero.tol										#n
@@ -132,7 +131,7 @@
 				######	we check if all the determinants in no empty populations are 0
 #o	if (max(es[ni.ini > 0]) <= zero.tol)	##	all eigenvalues are somehow zero.
 	if (max(es[idx.ni.ini.gr.0]) <= zero.tol)	#n	"idx.ni.ini.gr.0" instead of (ni.ini > 0)
-		return (matrix (0, p, K))												##		-> return zero mat
+		return (matrix(0, p, K))										 		##		-> return zero mat
 
 				######  we put in d the determinants of the populations (converting es into a matrix of dim 1 x K)
 	d = t(es)	#### --> dim (d) = 1 x K (has once been "d <- matrix (es, nrow = 1)")
@@ -151,13 +150,15 @@
 		dfin <- d^(1/p)
 	}
 	else
-		dfin <- .restr2_eigenv (d^(1/p), ni.ini, restr.fact^(1/p), zero.tol)
+		dfin <- .restr2_eigenv(d^(1/p), ni.ini, restr.fact^(1/p), zero.tol)
 
 
 					######  we apply the restriction to the determinants by using the .restr2_eigenv function
 					######  In order to apply this function is neccessary to transform d and factor with the power (1/p)
-#cat ("\nfin:\t", dfin, "\n")
-	.multbyrow (autovalues_det, dfin)											## autovalues_det %*% diag (dfin)
+
+##cat ("\nfin:\t", dfin, "\n")
+	ret <- .multbyrow (autovalues_det, dfin)      									## autovalues_det %*% diag (dfin)
+    return(ret)
 }
 
 	.HandleSmallEv <- function (autovalues, zero.tol)							#n	a part of .restr2_deter_, which handles almost zero eigenvalues
@@ -165,18 +166,21 @@
 					######  populations with one eigenvalue close to 0 are very close to be contained in a hyperplane
 					######  autovalues2 is equal to autovalues except for the columns corresponding to populations close to singular
 					######  for these populations we put only one eigenvalue close to 0 and the rest far from 0   	
-		K <- nrow (autovalues)													#n
+		
+##        cat("\n.HandleSmallEv\n")
+        
+        K <- nrow (autovalues)													#n
 
 #o		autovalues[autovalues < zero.tol] = zero.tol
 		autovalues[autovalues <= zero.tol] <- zero.tol							#n	"<= zero.tol" for checking for zero
 
-		mi <- apply(autovalues,2,min)											##	the minimum eigenvalue of each cluster
-		ma <- apply(autovalues,2,max)											##	the maximum eigenvalue of each cluster
+		mi <- apply(autovalues, 2, min)											##	the minimum eigenvalue of each cluster
+		ma <- apply(autovalues, 2, max)											##	the maximum eigenvalue of each cluster
 
 #o		idx.iter <- (1:K) [ma/mi>1 / zero.tol]									#o	all clusters which have almost zero eigenvalues
-		idx.iter <- which (mi/ma <= zero.tol)									#n	making more obvious for what to check!
+		idx.iter <- which(mi/ma <= zero.tol)									#n	making more obvious for what to check!
 
-		for (i in idx.iter)														##	for each of these clusters. set all "normal" eigenvalues to a high value
+		for(i in idx.iter)														##	for each of these clusters. set all "normal" eigenvalues to a high value
 			autovalues[autovalues[,i] > mi[i] / zero.tol, i] <- mi[i] / zero.tol
 
 #o		es2 = apply(autovalues, 2, prod)
@@ -189,7 +193,6 @@
 
 		p <- nrow (autovalues)													#n
 		autovalues_det <- .multbyrow (autovalues, det^(-1/p))					#n	
-
 		return (autovalues_det)
 	}
 

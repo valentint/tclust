@@ -194,6 +194,10 @@ function (x, k = 3, alpha = 0.05, nstart = 50, iter.max = 20,
   for (i in 1:ret$k)
     ret$centers[,i] <- ret$centers[,i] * O$scale + O$center
 
+    ## VT::07.11.2023 - transform back also the data matrix x
+    ret$par$x <- sweep(ret$par$x, 2L, O$scale, `*`, check.margin = FALSE)
+    ret$par$x <- sweep(ret$par$x, 2L, O$center, `+`, check.margin = FALSE)
+
   class (ret) <- "tkmeans"
 
   O$ret <- ret
@@ -228,32 +232,22 @@ function (x, k = 3, alpha = 0.05, nstart = 50, iter.max = 20,
   O$ret$par$restr.C    <- O$restr.C
   O$ret$par$deter.C    <- O$deter.C
 
-  O$ret$cov <- array (ret.C$cov, c (O$p, O$p, O$k))[, , O$idxuse, drop = FALSE]
-
-  dimnames (O$ret$cov) <- dimnames (O$ret$centers)[c (1, 1, 2)]
+    O$ret$cov <- array(ret.C$cov, c (O$p, O$p, O$k))[, , O$idxuse, drop = FALSE]
+    dimnames (O$ret$cov) <- dimnames (O$ret$centers)[c (1, 1, 2)]
 
 	## calculate the "unrestr.fact"
-#  if (O$deter.C)
-#    get.Mm <- function (x, O) det (cov (O$x[x == O$ret$cluster, ]))
-#  else
-#    get.Mm <- function (x, O) eigen (cov (O$x[x == O$ret$cluster, ]))$values
+    get.Mm <- if (O$deter.C) .get.Mm.det else .get.Mm.eigen
+    EV <- sapply (1:O$ret$k, get.Mm, O = O)
+    if(all(is.na (EV)))
+	   O$ret$unrestr.fact <- 1
+    else
+	   O$ret$unrestr.fact <- ceiling (max (EV, na.rm = TRUE) / min (EV, na.rm = TRUE))
 
-  get.Mm <- if (O$deter.C) .get.Mm.det else .get.Mm.eigen
+    O$ret <- .tclust.warnings (O, O$ret)
+    .tclust.warn (O, O$ret)
 
-  EV <- sapply (1:O$ret$k, get.Mm, O = O)
-
-  if (all (is.na (EV)))
-	O$ret$unrestr.fact <- 1
-  else
-	  O$ret$unrestr.fact <- ceiling (max (EV, na.rm = TRUE) / min (EV, na.rm = TRUE))
-
-  O$ret <- .tclust.warnings (O, O$ret)
-  .tclust.warn (O, O$ret)
-
-
-
-  if (O$fuzzy)
-    O$ret$z <- matrix (ret.C$z, O$n, O$k)[,O$idxuse]
+    if (O$fuzzy)
+        O$ret$z <- matrix (ret.C$z, O$n, O$k)[,O$idxuse]
 
   cmm <- O$scale %*% t (O$scale)
        #  matrix (O$scale, nrow = O$p, ncol = 1) %*%
@@ -336,7 +330,7 @@ function (x, k = 3, alpha = 0.05, nstart = 50, iter.max = 20,
     }
     else if (ret$warnings$size)
       warning ("Clusters with size < n * 0.02 found - try reducing k.")
-    else if (ret$warnings$size)
+    else if (ret$warnings$sizep)
      warning ("Clusters with size <= p found - try reducing k.")
 
   }
@@ -391,10 +385,3 @@ function (x, k = 3, alpha = 0.05, nstart = 50, iter.max = 20,
   list (restr = restr, deter = deter)
 }
 
-#convplot <- function (x)
-#{  ##  function for evaluating the convergence of a run of tclust
-#   ord <- order (x$int$er.obj)
-#   plot (x$int$er.obj[ord], col = 2-x$er.conv[ord],
-#   xlab = "Iteration (ordered)",
-#   ylab = "Objective Function", main = "Convergence Plot")
-#}

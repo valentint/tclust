@@ -14,6 +14,10 @@
 # Output files from R CMD build
 /*.tar.gz
 
+# Object files and dlls
+*.o
+*.dll
+
 # Output files from R CMD check
 /*.Rcheck/
 

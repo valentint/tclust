@@ -1,3 +1,12 @@
+2023-12-06  Valentin Todorov  <valentin.todorov@chello.at>
+    *
+	* DESCRIPTION (Version): 1.5-5
+    *
+    * R/tclust.R - Fixed: return the original (unscaled) X matrix
+    * src/R_meal.cpp - Fixed: warning: format string is not a string literal (potentially insecure)
+    *   see mail of Kurt Hornik from 28.11.2023
+    *
+
 2023-03-23  Valentin Todorov  <valentin.todorov@chello.at>
     *
 	* DESCRIPTION (Version): 1.5-4
@@ -20,7 +29,7 @@
 
 2022-01-21  Valentin Todorov  <valentin.todorov@chello.at>
     *
-	* DESCRIPTION (Version): 1.5=0
+	* DESCRIPTION (Version): 1.5-0
 	* DESCRIPTION (Version): 1.4-3
     *
     * src/makevars
