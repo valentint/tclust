@@ -1,6 +1,4 @@
-print.tclust <-
-function (x, ...)
-{
+print.tclust <- function (x, ...) {
   cat ("* Results for TCLUST algorithm: *\n")
   cat ("trim = ", x$par$alpha, ", k = ", x$k, "\n", sep = "")
 
@@ -20,9 +18,11 @@ function (x, ...)
   invisible(x)
 }
 
-.print.tkmeans <-
-function (x, ...)
-{
+print.tkmeans <- function(x, ...) {
+
+    if(inherits(x, "tclust"))
+        return(print.tclust(x, ...))
+
   cat ("* Results for TKMEANS algorithm: *\n")
   cat ("trim = ", x$par$alpha, ", k = ", x$k, "\n", sep = "")
 
@@ -37,6 +37,7 @@ function (x, ...)
 
   if (!is.null (x$restr.fact))
     cat ("Selected restriction factor:", x$restr.fact, "\n")
+  
   cat (round (x$int$iter.converged / x$int$iter.successful* 100), "% of iterations converged successfully.\n", sep= "")
 
   invisible(x)

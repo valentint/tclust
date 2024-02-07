@@ -1,6 +1,7 @@
 \name{tkmeans}
 \encoding{latin1}
 \alias{ tkmeans }
+\alias{ print.tkmeans }
 \title{ Trimmed k-means Cluster Analysis  }
 \description{ 
   \code{tkmeans} searches for \code{k} (or less) spherical clusters in a data matrix \code{x}, whereas the \code{ceiling (alpha n)} most outlying observations are trimmed.

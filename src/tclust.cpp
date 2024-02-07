@@ -144,6 +144,8 @@
 
 			for (j = 0; 1; j++)
 			{
+			     // meal_printf ("\n---- Converged vs. successful: %d in %d (%d/%d)\n", m_nConvCount, m_nIterSuccess, i, j) ;
+
 				if (!restrEval ())
 				{
 					if (j)	//	2do: BUG: shouldn't this be "j" !?!? -> 20120515: changed to j
@@ -185,7 +187,9 @@
 
 			if (!i || dCurObj > m_dBestObj)			//	store if the current solution is the best solution so far..
 				SaveCurResult (dCurObj, j >= m_nKSteps) ;
-		}
+		
+			// meal_printf ("\n++++ Converged vs. successful: %d in %d (%d/%d)\n", m_nConvCount, m_nIterSuccess, i, j) ;
+        }
 	}
 
 	void CTClust::CheckRestrOk ()

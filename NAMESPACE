@@ -13,7 +13,7 @@ export(
     print.tclust,
     plot.tclust,
     tkmeans,
-#    print.tkmeans,
+    print.tkmeans,
     plot.tkmeans,
     DiscrFact,
     plot.DiscrFact,
@@ -34,7 +34,7 @@ S3method (plot, tclust)
 S3method (plot, DiscrFact)
 S3method (plot, ctlcurves)
 S3method (plot, tkmeans)
-#S3method (print, tkmeans)
+S3method (print, tkmeans)
 S3method (summary, DiscrFact)
 
 

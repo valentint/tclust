@@ -70,7 +70,10 @@
 			SET_SAFE (m_pnErrExc, 1) ;
 			return  ;
 		}
-		int i, j ;
+		
+        // VT::27.01.2024
+        //    int i, j ;
+		int &i = *m_pnIterSuccess = 0, j;
 
 		m_vIndOld.Reset (NAI) ;
 
@@ -130,7 +133,7 @@
 
 			SET_SAFE_ARR (pdObjER, i, dCurObj) ;
 
-			if (!i || dCurObj > m_dBestObj)			//	store if the current solution is the best solution so far..
+			if (!i || dCurObj > m_dBestObj)			//	store if the current solution is the best solution so far.
 				SaveCurResult0 (dCurObj, j >= nKSteps) ;
 		}
 	}
