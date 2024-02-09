@@ -1,10 +1,12 @@
 2024-01-27  Valentin Todorov  <valentin.todorov@chello.at>
     *
 	* DESCRIPTION (Version): 1.5-6
+	* DESCRIPTION (Version): 1.5-7
     *
     * R/print.tclust.R - restore print.tkmeans() - it was disabled in 2018 (1.4-1)
     * DESCRIPTION: Dependence on R (>= 3.6.2) added - see Writing R Extensions, 
     *   6.6.1 Fortran character strings, about USE_FC_LEN_T
+    * man/tclust.Rd: some examples enclosed in \dontrun{} to reduce check time
     *
 
 2023-12-06  Valentin Todorov  <valentin.todorov@chello.at>

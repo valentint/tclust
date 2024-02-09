@@ -265,10 +265,7 @@ clus <- tclust (x, k = 3, alpha=0.0, restr.fact = 100)
 
 plot (clus)
 
-%#--- EXAMPLE 2 ------------------------------------------
-%data (geyser2)
-%clus <- tkmeans (geyser2, k = 3, alpha = 0.03)
-%plot (clus)
+\dontrun{
 
 #--- EXAMPLE 3 ------------------------------------------
 data (M5data)
@@ -317,24 +314,9 @@ plot (swissbank[, 4], swissbank[, 6], col = clus$cluster + 1,
 
 plot (clus)
 
-\dontshow{
-%#--- EXAMPLE 5 ------------------------------------------
-%# more complex covariance structure restrictions
-%data (M5data)
-%x <- M5data[, 1:2]
-%
-%clus.a <- tclust (x, k = 3, alpha = 0.1, restr.fact = 51, restr = "dir.eigen")
-%clus.b <- tclust (x, k = 3, alpha = 0.1, restr.fact = 8, restr = "dir.deter")
-%clus.c <- tclust (x, k = 3, alpha = 0.1, restr.fact = 8, restr = "prop")
-%
-%pa <- par (mfrow = c (1, 3))
-%plot (clus.a, main = "(a) dir.eigen")
-%plot (clus.b, main = "(b) dir.deter")
-%plot (clus.c, main = "(c) prop")
-%par (pa)
-}
 }
 
+}
 \keyword{ multivariate }
 \keyword{ robust }
 \keyword{ cluster }

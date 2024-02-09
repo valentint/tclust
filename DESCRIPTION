@@ -1,5 +1,5 @@
 Package: tclust
-Version: 1.5-6
+Version: 1.5-7
 VersionNote: Released 1.5-5 on 2023-12-07 on CRAN
 Title: Robust Trimmed Clustering
 Author: Agustin Mayo Iscar, Luis Angel Garcia Escudero, Heinrich Fritz

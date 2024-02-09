@@ -68,13 +68,11 @@ The plot type is selected by setting argument \code{what} to one of the followin
 Preprint available at www.eio.uva.es/infor/personas/langel.html.
 }
 \author{ Agustin Mayo Iscar, Luis Angel Garcia Escudero, Heinrich Fritz }
-%\note{ ~~further notes~~   ~Make other sections like Warning with  ~}
-%\section{Warning }{....}
-%\seealso{ ~~objects to See Also as \code{\link{help}}, ~~~ }
 \examples{
 \dontshow{
 set.seed(0)
 }
+\dontrun{
 sig <- diag (2)
 cen <- rep (1, 2)
 x <- rbind(mvtnorm::rmvnorm(108, cen * 0,   sig),
@@ -85,6 +83,7 @@ x <- rbind(mvtnorm::rmvnorm(108, cen * 0,   sig),
 ctl <- ctlcurves(x, k = 1:4)
 plot(ctl)
 
+}
 }
 \keyword{ hplot }
 \keyword{ cluster }
