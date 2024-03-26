@@ -1,7 +1,7 @@
 ## Fix drop[i,j], out[i,j]  and unrestr.fact[i,j]
 ##
 
-##  roxygen2::roxygenise("C:/users/valen/onedrive/myrepo/rrdev/robClus", load_code=roxygen2:::load_installed)
+##  roxygen2::roxygenise("C:/users/valen/onedrive/myrepo/r/tclust", load_code=roxygen2:::load_installed)
 
 #'
 #' Classification Trimmed Likelihood Curves
@@ -42,6 +42,8 @@
 #'    pp. 585-599, <doi:10.1007/s11222-010-9194-z>
 #'
 #' @examples
+#'
+#' \dontrun{
 #'
 #'  #--- EXAMPLE 1 ------------------------------------------
 #'
@@ -85,7 +87,8 @@
 #'    ##  the selected model
 #'  plot(tclust(swissbank, k = 2, alpha = 0.1, restr.fact = 50))
 #'  
-
+#' }
+#'
 ctlcurves <- function(x, k=1:4, alpha=seq(0, 0.2, len=6), restr.fact=50, parallel=FALSE, trace=1, ...) {
 
 ## disabled parameter:

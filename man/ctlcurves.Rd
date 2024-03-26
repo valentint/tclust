@@ -59,6 +59,8 @@ These curves show the values of the trimmed classification (log-)likelihoods
 }
 \examples{
 
+\dontrun{
+
  #--- EXAMPLE 1 ------------------------------------------
 
  sig <- diag (2)
@@ -101,6 +103,8 @@ These curves show the values of the trimmed classification (log-)likelihoods
    ##  the selected model
  plot(tclust(swissbank, k = 2, alpha = 0.1, restr.fact = 50))
  
+}
+
 }
 \references{
 \enc{García}{Garcia}-Escudero, L.A.; Gordaliza, A.; \enc{Matrán}{Matran}, C. and Mayo-Iscar, A. (2011), 

@@ -209,6 +209,8 @@ Cluster components with similar sizes are favoured when considering \code{equal.
  
  plot(clus)
  
+\dontrun{
+
  ##--- EXAMPLE 3 ------------------------------------------
  data(M5data)
  x <- M5data[, 1:2]
@@ -230,6 +232,7 @@ Cluster components with similar sizes are favoured when considering \code{equal.
  par(pa)
  
  ##--- EXAMPLE 4 ------------------------------------------
+
  data (swissbank)
  ## Two clusters and 8\\% trimming level
  (clus <- tclust(swissbank, k = 2, alpha = 0.08, restr.fact = 50))
@@ -273,6 +276,8 @@ Cluster components with similar sizes are favoured when considering \code{equal.
  ##  mixture approach (all 0 if trimmed unit)
  head(clus.b$posterior)
  
+}
+
 }
 \references{
 Fritz, H.; Garcia-Escudero, L.A.; Mayo-Iscar, A. (2012), "tclust: An R Package 

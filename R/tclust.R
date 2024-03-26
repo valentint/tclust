@@ -187,6 +187,8 @@
 #'  
 #'  plot(clus)
 #'  
+#' \dontrun{
+#'
 #'  ##--- EXAMPLE 3 ------------------------------------------
 #'  data(M5data)
 #'  x <- M5data[, 1:2]
@@ -208,6 +210,7 @@
 #'  par(pa)
 #'  
 #'  ##--- EXAMPLE 4 ------------------------------------------
+#'
 #'  data (swissbank)
 #'  ## Two clusters and 8\% trimming level
 #'  (clus <- tclust(swissbank, k = 2, alpha = 0.08, restr.fact = 50))
@@ -251,6 +254,8 @@
 #'  ##  mixture approach (all 0 if trimmed unit)
 #'  head(clus.b$posterior)
 #'  
+#' }
+#'
 
 tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, iter.max,
                    equal.weights=FALSE, restr=c("eigen", "deter"), restr.fact=12, cshape=1e10, opt="HARD",
