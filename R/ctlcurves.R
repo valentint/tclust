@@ -1,15 +1,100 @@
+## Fix drop[i,j], out[i,j]  and unrestr.fact[i,j]
+##
 
-ctlcurves <-
-function (x, k = 1:4, alpha = seq (0, 0.2, len = 6),
-          restr.fact = 50, trace = 1, ...)
-{
+##  roxygen2::roxygenise("C:/users/valen/onedrive/myrepo/rrdev/robClus", load_code=roxygen2:::load_installed)
+
+#'
+#' Classification Trimmed Likelihood Curves
+#' 
+#' @name ctlcurves
+#' @aliases print.ctlcurves
+#' @description The function applies \code{\link{tclust}} several times on a given dataset while parameters 
+#'  \code{alpha} and \code{k} are altered. The resulting object gives an idea of the optimal 
+#'  trimming level and number of clusters considering a particular dataset.
+#' @details These curves show the values of the trimmed classification (log-)likelihoods 
+#'  when altering the trimming proportion \code{alpha} and the number of clusters \code{k}. 
+#'  The careful examination of these curves provides valuable information for choosing 
+#'  these parameters in a clustering problem. For instance, an appropriate \code{k} 
+#'  to be chosen is one that we do not observe a clear increase in the trimmed classification 
+#'  likelihood curve for k with respect to the k+1 curve for almost all the range 
+#'  of alpha values. Moreover, an appropriate choice of parameter alpha may be derived 
+#'  by determining where an initial fast increase of the trimmed classification 
+#'  likelihood curve stops for the final chosen k. A more detailed explanation can 
+#'  be found in García-Escudero et al. (2011). 
+#' @param x A matrix or data frame of dimension n x p, containing the observations (row-wise).
+#' @param k A vector of cluster numbers to be checked. By default cluster numbers from 1 to 5 are examined.
+#' @param alpha A vector containing the alpha levels to be checked. By default \code{alpha} 
+#'  levels from 0 to 0.2 (continuously increased by 0.01), are checked.
+#' @param restr.fact The restriction factor passed to \code{\link{tclust}}.
+#' @param parallel A logical value, to be passed further to \code{tclust()}.
+#' @param \ldots Further arguments (as e.g. \code{restr}), passed to \code{\link{tclust}} 
+#' @param trace Defines the tracing level, which is set to \code{1} by default. 
+#'  Tracing level \code{2} gives additional information on the current iteration.
+#' @return The function returns an S3 object of type \code{ctlcurves} containing the following components:
+#'	\itemize{
+#'  \item \code{par} A list containing all the parameters passed to this function 
+#'	\item \code{obj}  An array containing the objective functions values of each computed cluster-solution 
+#'	\item \code{min.weights} An array containing the minimum cluster weight of each computed cluster-solution 
+#'  }
+#' @references 
+#'    \enc{García}{Garcia}-Escudero, L.A.; Gordaliza, A.; \enc{Matrán}{Matran}, C. and Mayo-Iscar, A. (2011), 
+#'    "Exploring the number of groups in robust model-based clustering." \emph{Statistics and Computing}, \bold{21} 
+#'    pp. 585-599, <doi:10.1007/s11222-010-9194-z>
+#'
+#' @examples
+#'
+#'  #--- EXAMPLE 1 ------------------------------------------
+#'
+#'  sig <- diag (2)
+#'  cen <- rep (1, 2)
+#'  x <- rbind(MASS::mvrnorm(108, cen * 0,   sig),
+#'  	       MASS::mvrnorm(162, cen * 5,   sig * 6 - 2),
+#'  	       MASS::mvrnorm(30, cen * 2.5, sig * 50))
+#'
+#'  ctl <- ctlcurves(x, k = 1:4)
+#'  ctl
+#'
+#'    ##  ctl-curves 
+#'  plot(ctl)  ##  --> selecting k = 2, alpha = 0.08
+#'
+#'    ##  the selected model 
+#'  plot(tclust(x, k = 2, alpha = 0.08, restr.fact = 7))
+#'
+#'  #--- EXAMPLE 2 ------------------------------------------
+#'
+#'  data(geyser2)
+#'  ctl <- ctlcurves(geyser2, k = 1:5)
+#'  ctl
+#'  
+#'    ##  ctl-curves 
+#'  plot(ctl)  ##  --> selecting k = 3, alpha = 0.08
+#'
+#'    ##  the selected model
+#'  plot(tclust(geyser2, k = 3, alpha = 0.08, restr.fact = 5))
+#'
+#'
+#'  #--- EXAMPLE 3 ------------------------------------------
+#'  
+#'  data(swissbank)
+#'  ctl <- ctlcurves(swissbank, k = 1:5, alpha = seq (0, 0.3, by = 0.025))
+#'  ctl
+#'  
+#'    ##  ctl-curves 
+#'  plot(ctl)  ##  --> selecting k = 2, alpha = 0.1
+#'  
+#'    ##  the selected model
+#'  plot(tclust(swissbank, k = 2, alpha = 0.1, restr.fact = 50))
+#'  
+
+ctlcurves <- function(x, k=1:4, alpha=seq(0, 0.2, len=6), restr.fact=50, parallel=FALSE, trace=1, ...) {
+
 ## disabled parameter:
   mah.alpha <- 0.05
 
 
   stopifnot (length (restr.fact) == 1)
 
-  if (trace >= 1)
+  if(trace >= 1)
   {
     cat ("Depending on arguments x, k and alpha, ",
          "this function needs some time to compute.\n",
@@ -29,142 +114,120 @@ function (x, k = 1:4, alpha = seq (0, 0.2, len = 6),
   n.alpha <- length (alpha)
   n <- nrow (x)
 
-  for (i in 1:n.k)
-  {
-    for (j in 1:n.alpha)
-    {
+  for (i in 1:n.k) {
+    for (j in 1:n.alpha)   {
       cur.alpha <- alpha[j]
 
       if (trace >= 2)
         cat ("k =", k[i], "; alpha =", alpha[j])
 
-      clus <- tclust (x, k = k[i], alpha = alpha[j], restr.fact = restr.fact,
-                    warnings = FALSE, trace = .tr (trace), ...)
+      clus <- tclust(x, k=k[i], alpha=alpha[j], restr.fact=restr.fact, parallel=parallel, trace=0, ...)
 
-      out[i, j] <- sum (clus$mah > qchisq (1-mah.alpha, p), na.rm = TRUE)
+      out[i, j] <- sum(clus$mah > qchisq(1-mah.alpha, p), na.rm = TRUE)
 
-      drop[i, j] <- clus$warnings$drop | clus$warnings$size |
-                  clus$warnings$sizep
+      drop[i, j] <- FALSE   # clus$warnings$drop | clus$warnings$size | clus$warnings$sizep
 
-
-      dsc <- DiscrFact (clus)
-
+      dsc <- DiscrFact(clus)
       ndoubt[i, j] <- sum (dsc$assignfact > dsc$threshold)
 
       unrestr.fact[i, j] <- clus$unrestr.fact
-
-      obj[i,j] <- clus$obj            ##  the objective function criterion
-                                      ##  weights of the smallest group
-      min.weights[i,j] <- min(clus$weights)
-
-
-
-#     if (stab [i, j])
-#    {
-#      srf <- 1e7
-#      opt <- tclust (x, k = k[i], alpha = alpha[j], restr.fact = srf,
-#                   warnings = FALSE, trace = .tr (trace), ...)
-#
-#    if (opt$unrestr.fact >= 1e5 ||
-#        opt$warn$size || opt$warn$sizep)
-#      stab[i:n.k, j:n.alpha] <- FALSE
-#      }
+      obj[i,j] <- clus$obj                      ##  the objective function criterion
+      min.weights[i,j] <- min(clus$weights)     ##  weights of the smallest group
 
       if (trace >= 2)
         cat ("; obj = ", clus$obj, ";min (weights) =", min(clus$weights), "\n")
-#     else if (trace == 1)
-#      cat (".")
     }
   }
 
-#  if (trace == 1)
-#    cat ("\n"
-#
-#  unrestr.fact [!stab] <- NA
-#
-#  warn <- list (restr.lo = max (unrestr.fact [stab]) > restr.fact)
-#
-#  if (warn$restr.lo)
-#  warning (paste ("The selected restriction factor (",
-#    ceiling (restr.fact), ") appears to be too small.\n",
-#    "ctlcurves suggests to increase the argument restr.fact to ",
-#    ceiling (1.5 * max (unrestr.fact [stab])),".", sep = ""))
+  par <- list(x=x, k=k, alpha=alpha, mah.alpha=mah.alpha, restr.fact=restr.fact)
 
-  par <- list (x = x, k = k, alpha = alpha, mah.alpha = mah.alpha,
-               restr.fact = restr.fact)
-
-  ret <- list (obj = obj, min.weights = min.weights, par = par,
-    unrestr.fact = unrestr.fact, ndoubt = ndoubt, out = out, drop = drop)
-  #, stable = stab
-
-##
-##  calculating a suggestion
-##
-#
-#  dif.obj <- apply (obj, 2, diff)
-#  dif.obj [dif.obj < 0] <- 0
-#
-#  m.dif <- apply (dif.obj, 1, mean)
-#
-#  sug.alpha <- sug.k <- NULL
-#  if (any (dif.obj [,1] / m.dif > 2))                          ## trimming seems to make sense
-#    sug.k <- which.max (dif.obj [,1] / m.dif)
-#  else                      ## seems like trimming is not really needed
-#     sug.k <- which (rowMeans(dif.obj)/diff(range(obj)) < 0.05)[1]
-#
-#  if (!is.null(sug.k))
-#    sug.alpha <- which (out[sug.k,] / (n * (1 - alpha)) < mah.alpha)[1]
-#
-#  if (!warn$restr.lo &&
-#      length (sug.alpha) &&
-#      !is.na (unrestr.fact[sug.k, sug.alpha]))
-#    ret$suggestion <- list (k = k[sug.k],
-#                            alpha = alpha[sug.alpha],
-#                            restr.fact = ceiling (1.5 * unrestr.fact[sug.k, sug.alpha]))
+  ret <- list (obj=obj, min.weights=min.weights, par=par,
+    unrestr.fact=unrestr.fact, ndoubt=ndoubt, out=out, drop=drop)
 
   class (ret) <- "ctlcurves"
   ret
 }
 
-.tr <- function (trace, trace.red = 2)  ##  trace reduction
-{
-  max (trace - trace.red, 0)
-}
+#' @name plot.ctlcurves
+#' @title The \code{plot} method for objects of class \code{ctlcurves}
+#' @rdname plot.ctlcurves
+#' @description The \code{plot} method for class \code{ctlcurves}: This function implements 
+#'  a series of plots, which display characteristic values 
+#'  of the each model, computed with different values for \code{k} and \code{alpha}.
+#' @param x The ctlcurves object to be shown
+#' @param what A string indicating which type of plot shall be drawn. See the details section for more information.
+#' @param main A character-string containing the title of the plot.
+#' @param xlab,ylab,xlim,ylim Arguments passed to plot().
+#' @param col A single value or vector of line colors passed to \code{\link[graphics]{lines}}.
+#' @param lty A single value or vector of line colors passed to \code{\link[graphics]{lines}}.
+#' @param \ldots Arguments to be passed to or from other methods.
+#' @details These curves show the values of the trimmed classification (log-)likelihoods 
+#'  when altering the trimming proportion \code{alpha} and the number of clusters \code{k}.
+#'  The careful examination of these curves provides valuable information for choosing these 
+#'  parameters in a clustering problem. For instance, an appropriate \code{k} to be chosen 
+#'  is one that we do not observe a clear increase in the trimmed classification likelihood
+#'  curve for \code{k} with respect to the \code{k+1} curve for almost all the range of
+#'  \code{alpha} values. Moreover, an appropriate choice of parameter \code{alpha} may
+#'  be derived by determining where an initial fast increase of the trimmed classification 
+#'  likelihood curve stops for the final chosen \code{k}. A more detailed explanation 
+#'  can be found in García-Escudero et al. (2011).
+#'	  
+#'  This function implements a series of plots, which display characteristic values 
+#'  of the each model, computed with different values for \code{k} and \code{alpha}.
+#   The plot type is selected by setting argument \code{what} to one of the following values:
+#'  \describe{
+#'    \item{\code{"obj"}}{Objective function values.}
+#'    \item{\code{"min.weights"}}{The minimum cluster weight found for each computed model. 
+#'      This plot is intended to spot spurious clusters, which in 
+#'	     general yield quite small weights.}
+#'    \item{\code{"doubtful"}}{The number of "doubtful" decisions identified by \code{\link{DiscrFact}}.}
+#'  }
+#'
+#' @references 
+#'    \enc{García}{Garcia}-Escudero, L.A.; Gordaliza, A.; \enc{Matrán}{Matran}, C. and Mayo-Iscar, A. (2011), 
+#'    "Exploring the number of groups in robust model-based clustering." \emph{Statistics and Computing}, \bold{21} 
+#'    pp. 585-599, <doi:10.1007/s11222-010-9194-z>
+#'
+#' @examples
+#'
+#'  #--- EXAMPLE 1 ------------------------------------------
+#'
+#'  sig <- diag (2)
+#'  cen <- rep (1, 2)
+#'  x <- rbind(MASS::mvrnorm(108, cen * 0,   sig),
+#'  	       MASS::mvrnorm(162, cen * 5,   sig * 6 - 2),
+#'  	       MASS::mvrnorm(30, cen * 2.5, sig * 50))
+#'
+#'  (ctl <- ctlcurves(x, k = 1:4))
+#'
+#'  plot(ctl)
 
-plot.ctlcurves <-
-function(x, what = c ("obj", "min.weights", "doubtful"),#, "out"
-         main, xlab, ylab, xlim, ylim, col, lty = 1, ...)
+plot.ctlcurves <- function(x, what=c("obj", "min.weights", "doubtful"),
+         main, xlab, ylab, xlim, ylim, col, lty=1, ...)
 {
   mark.art = FALSE
 
-  what <- match.arg (what[1], eval (formals ()$what))
+  what <- match.arg(what[1], eval(formals ()$what))
 
   n.k <- length (x$par$k)
   idxb.use <- rep (TRUE, n.k)
-  if (what == "obj")
-  {
+  if(what == "obj") {
     dat <- x$obj
     set.ylab <- "Objective Function Value"
-  set.main <- "CTL-Curves"
-  }
-  else if (what == "out")
-  {
+    set.main <- "CTL-Curves"
+  } else if(what == "out") {
     dat <- x$out
     set.ylab <- "Number of Outliers among Clusters"
-  set.main <- "Outlier-Curves"
-  }
-  else if (what == "doubtful")
-  {
+    set.main <- "Outlier-Curves"
+  } else if(what == "doubtful") {
     dat <- x$ndoubt
     set.ylab <- "Number of Doubtful Decision"
-  set.main <- "Doubtfull Decision-Curves"
-  }
-  else if (what == "min.weights")
-  {
-  idxb.use <- x$par$k != 1       # k == 1 -> min.weights == 1 -> we're not interested in that.
+    set.main <- "Doubtfull Decision-Curves"
+  } else if(what == "min.weights") {
+    idxb.use <- x$par$k != 1       # k == 1 -> min.weights == 1 -> we're not interested in that.
     dat <- x$min.weights
     set.ylab <- "Minimum Weigths"
-  set.main <- "Minimum Weight-Curves"
+    set.main <- "Minimum Weight-Curves"
   }
 
   if (missing (ylim)) ylim <- range (dat[idxb.use,])
@@ -247,89 +310,3 @@ print.ctlcurves <- function (x, ...) {
 
  invisible(x)
 }
-
-              ##  discarded versions of print.ctlcurves.
-              ##  Some features might "return in the future..
-
-#{
-#print.ctlcurves <-
-#function (x, ...)
-#{
-#  cat ("The models' individual restriction factors:\n")
-#  print (x$unrestr.fact)
-#  mrf <- max (x$unrestr.fact, na.rm = TRUE)
-#  cat ("\n")
-#  if (mrf > x$par$restr.fact)
-#    cat ("ctlcurves suggests to increase restr.fact to", ceiling (mrf * 1.5), "\n")
-#
-#  cat ("The number of doubtful decisions for each models:\n\n")
-#  print (x$ndoubt)
-#  cat ("\n\n")
-#
-#  cat ("The fraction of outliers found within the clusters:\n\n")
-#
-#   out <- x$out %*% diag ((1 / (nrow (x$par$x) * (1 - x$par$alpha))))
-#  dimnames (out) <- dimnames (x$out)
-#  print (round (out, 2))
-#  cat ("\n\n")
-#}
-
-#print.ctlcurves<-
-#function (x, trace = 1, ...)
-#{
-#  cat ("Analyzed ", length (x$par$k) * length (x$par$alpha), " models.\n",
-#       "Found ", sum (x$stable), " stable models.\n"
-#     , sep = "")
-#  if (!is.null (x$suggestion))
-#  {
-#    cat ("\nA heuristic analysis of the ctl-curves suggests the following parameters:\n\n",
-#       "  k:          ", x$suggestion$k, "\n",
-#     "  alpha:      ", x$suggestion$alpha, "\n",
-#     "  restr.fact: ", x$suggestion$restr.fact, "\n\n", sep = "")
-#    if (trace >= 1)
-#     cat ("NOTE: this suggestion is based on the assumption of normality\n",
-#     "and moderate contamination.\n",
-#     "DON'T trust this suggestion blindly and check the resulting model manually\n",
-#     " (e.g. with \"DiscrFact\" or \"plot (ctl)\").\n\n",
-#     sep = "")
-#  }
-#  else
-#    cat ("No parameter constellation could be found automatically\n",
-#       "Try increasing alpha and k\n\n", sep = "")
-#}
-
-#print.ctlcurves <-
-#function (x, ...)
-#{
-##  n.stable <- sum (x$stable)
-##       , "Found ", n.stable, " stable models.\n"
-#
-#  cat ("Computed ", length (x$par$k) * length (x$par$alpha),
-#       " solutions (chosen restr.fact = ", x$par$restr.fact, ").\n", sep = "")
-##  cat ("Analyzed ", length (x$par$k) * length (x$par$alpha), " models for values of\n", sep = "")
-##  cat ("  k:          ", paste (x$par$k, collapse = ", "), "\n")
-##  cat ("  alpha:      ", paste (round (x$par$alpha, 2), collapse = ", "), "\n")
-##  cat ("  restr.fact: ", x$par$restr.fact, "\n\n")
-#
-#  n.restr.art <- sum (x$par$restr.fact < x$unrestr.fact)
-#  cat ("The solutions' individual restriction factors:\n\n")
-#
-#  uf <- array (dim = dim (x$unrestr.fact))
-#  for (i in 1:ncol (uf))
-#   for (j in 1:nrow (uf))
-#    uf[j, i] <- format (x$unrestr.fact[j, i], scientific = x$unrestr.fact[j, i] >= 1e5, digits = 2)
-#
-#  ufs <- array ("", dim = dim (uf))
-#  ufs[x$par$restr.fact < x$unrestr.fact] <- "*"
-#
-#  ufpr <- paste (uf, ufs, sep = "")
-##  dim (ufpr) <- dim (uf)
-##  dimnames (ufpr) <- dimnames (uf)
-#  attributes (ufpr) <- attributes (x$unrestr.fact)
-#  print (noquote (ufpr))
-#
-#  if (n.restr.art)
-#    cat ("\n(*) Identified ", n.restr.art, " artificially restricted solutions.", sep = "")
-# cat ("\n")
-#}
-#

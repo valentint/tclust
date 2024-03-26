@@ -1,29 +1,4 @@
-##  Multivariate normal density
-#o  .dmnorm <- function (X,mu,sigma) ((2 * pi)^(-length(mu) / 2)) * (det(sigma)^(-1/ 2)) * exp (-0.5 * mahalanobis (X, mu, sigma))
-.dmnorm <- function (X,mu,sigma)
-{
-  ((2 * pi)^(-length(mu) / 2)) *
-  (det(sigma)^(-1/ 2)) *
-  exp (-0.5 * .evmaha (X, mu, sigma))
-}
-
-.evmaha <- function (X, mu, sigma)    ##  calculate mahalanobis distances 
-                                      ##  using the eigenvalues and eigenvectors. 
-                                      ##  thus no singularity problems arise.
-{                                     ##  Mahalanobis distance == Inf is possible.
-    v <- eigen (sigma)
-    Zt <- t (v$vectors) %*% (t (X) - mu)
-    colSums ((Zt * v$values^(-.5))^2)
-}
-
-#.dmnorm <-
-#function(X,mu,sigma)
-#{
-#  ((2*pi)^(-length(mu)/2))*(det(sigma)^(-1/2))*exp(-0.5*mahalanobis(X,mu,sigma))
-#}
-
-.doEllipses <-
-function (eigval, eigvec, eigen, center, cov, n = 100, size = 1, ...)
+.doEllipses <- function (eigval, eigvec, eigen, center, cov, n = 100, size = 1, ...)
 {
   if (!missing (cov))
     eigen <- base::eigen (cov)
@@ -60,18 +35,10 @@ function (eigval, eigvec, eigen, center, cov, n = 100, size = 1, ...)
   lines (XY[,1], XY[,2], ...) ##  draw ellipses
 }
 
-.getsubmatrix <-
-function (x, idx)  matrix (x[drop = FALSE,,,idx], nrow = dim (x)[1])
+.getsubmatrix <- function(x, idx)  
+    matrix (x[drop = FALSE,,,idx], nrow = dim (x)[1])
 
-.stretch <-
-function (x, fact)
-{
-  range = diff (sort (x))
-  c (x + range * fact * c(-1,1))
-}
-
-.vline <-
-function (x, yfact = 2, col = 1, lty = 1, lwd = 1, ...)
+.vline <- function (x, yfact = 2, col = 1, lty = 1, lwd = 1, ...)
 {
    ylim = par ("usr")[3:4]
    ylim <- ylim + diff (ylim) * (1 - 1 / yfact) / 2 * c(1,-1)
@@ -84,52 +51,4 @@ function (x, yfact = 2, col = 1, lty = 1, lwd = 1, ...)
      lines (rep (x[i], 2), ylim, col = col[i], lty = lty [i], lwd = lwd [i]
              , ...)
 }
-# 
-# .setargs <- function (ARGS, FORMALS, DEFAULT = FALSE, ...)
-# {
-#   args <- list (...)
-#   names.args <- names (args)
-#   names.call <- names (ARGS)
-#   
-#   idx.call <- pmatch (names.call, FORMALS)
-#   idx.arg <- pmatch (names.args, FORMALS)
-# 
-#   idx <- match (idx.arg, idx.call)
-# 
-#   idx.NA <- is.na (idx)
-#   if (!DEFAULT)
-#     ARGS[names.call [!idx.NA]] <- args[!idx.NA]
-#     
-#   ARGS[names.args[idx.NA]] <- args[idx.NA]
-#   ARGS
-# }
-# 
-# .getarg <- function (ARGS, FORMALS, arg)
-# {
-#   idx.arg <- which (FORMALS == arg)
-#   stopifnot (length (idx.arg) == 1)
-# 
-#   idx.call <- which (pmatch (names (ARGS), FORMALS) == idx.arg)
-#   stopifnot (length (idx.call) == 1)
-#   
-#   ARGS[[idx.call]]
-# }
-# 
-# .formalsnames <- function (x) names (formals (x))
-# 
-# .getformals <- function (f)
-# {
-#   args <- unlist (sapply (f, .formalsnames, simplify = TRUE))
-#   args [args != "..."]
-# }
 
-
-
-.Conv2Matrix <- function (x, sx = substitute (x))
-{
-    if(is.matrix(x))
-        return (x)
-    if(is.data.frame(x))
-        return (data.matrix(x))
-    return (matrix(x, nrow = length(x), ncol = 1, dimnames = list(names(x), deparse(sx))))
-}

@@ -1,3 +1,81 @@
+#' Plot Method for \code{tclust} and \code{tkmeans} Objects
+#'
+#' The plot method for classes \code{tclust} and \code{tkmeans}.
+#'
+#' @name plot.tclust
+#' @aliases plot.tkmeans
+#' @method plot tclust
+
+#' @description One and two dimensional structures are treated separately (e.g. tolerance 
+#'  intervals/ellipses are displayed). Higher dimensional structures are displayed 
+#'  by plotting the two first Fisher's canonical coordinates (evaluated by 
+#'  \code{tclust::discr_coords}) and derived from the final cluster assignments 
+#'  (trimmed observations are not taken into account). 
+#'  \code{plot.tclust.Nd} can be called with one or two-dimensional \code{tclust}- or \code{tkmeans}-objects 
+#'  too. The function fails, if \code{store.x = FALSE} is specified in the \code{tclust()} or \code{tkmeans()} call, 
+#'  because the original data matrix is required here.
+#'
+#' @param x The \code{tclust} or \code{tkmeans} object to be displayed
+#' @param \ldots Further (optional) arguments which specify the details of the 
+#'    resulting plot (see section "Further Arguments").
+#'
+#' @section Further Arguments:
+#'
+#' \itemize{
+#'  \item \code{xlab, ylab, xlim, ylim, pch, col} Arguments passed to \code{plot()}.
+#'  \item \code{main} The title of the plot. Use \code{"/p"} for displaying the chosen parameters 
+#'      \code{alpha} and \code{k} or \code{"/r"} for plotting the chosen restriction.
+#'  \item \code{main.pre} An optional string which is added to the plot's caption.
+#'  \item \code{sub} A string specifying the subtitle of the plot. Use \code{"/p"} (default) for 
+#'  displaying the chosen parameters \code{alpha} and \code{k}, \code{"/r"} for plotting 
+#'  the chosen restriction and \code{"/pr"} for both. 
+#'  \item \code{sub1} A secondary (optional) subtitle.
+#'  \item \code{labels} A string specifying the type of labels to be drawn. Either 
+#'      \code{labels="none"} (default), \code{labels="cluster"} or \code{labels="observation"} 
+#'      can be specified. If specified, parameter \code{pch} is ignored.
+#'  \item \code{text} A vector of length n (the number of observations) containing 
+#'      strings which are used as labels for each observation. If specified, 
+#'      the parameters \code{labels} and \code{pch} are ignored.
+#'  \item \code{by.cluster} Logical value indicating whether parameters 
+#'      \code{pch} and \code{col} refer to observations (FALSE) or clusters (TRUE).
+#'  \item \code{jitter.y} Logical value, specifying whether the drawn values shall be 
+#'      jittered in y-direction for better visibility of structures in 1 dimensional data.
+#'  \item \code{tol} The tolerance interval. 95\% tolerance ellipsoids (assuming normality) 
+#'      are plotted by default.
+#'  \item \code{tol.col, tol.lty, tol.lwd} Vectors of length k or 1 containing 
+#'      the \code{col}, \code{lty} and \code{lwd} arguments for the tolerance 
+#'      ellipses/lines.
+#' }
+#'
+#' @examples
+#'  #--- EXAMPLE 1------------------------------
+#'  sig <- diag (2)
+#'  cen <- rep (1, 2)
+#'  x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
+#'  	       MASS::mvrnorm(540, cen * 5,   sig * 6 - 2),
+#'  	       MASS::mvrnorm(100, cen * 2.5, sig * 50))
+#'  # Two groups and 10\% trimming level
+#'  a <- tclust(x, k = 2, alpha = 0.1, restr.fact = 12)
+
+#'  plot (a)
+#'  plot (a, labels = "observation")
+#'  plot (a, labels = "cluster")
+#'  plot (a, by.cluster = TRUE)
+
+#'  #--- EXAMPLE 2------------------------------
+#'  sig <- diag (2)
+#'  cen <- rep (1, 2)
+#'  x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
+#'  	       MASS::mvrnorm(540, cen * 5,   sig),
+#'  	       MASS::mvrnorm(100, cen * 2.5, sig))
+#'  # Two groups and 10\% trimming level
+#'  a <- tkmeans(x, k = 2, alpha = 0.1)
+
+#'  plot (a)
+#'  plot (a, labels = "observation")
+#'  plot (a, labels = "cluster")
+#'  plot (a, by.cluster = TRUE)
+#'
 
 plot.tclust <-
 function (x,  ...)
@@ -10,10 +88,10 @@ function (x,  ...)
     .plot.tclust.Nd (x, ...)
 }
 
-plot.tkmeans <-
-function (x,  ...)
-{
-	plot.tclust (x, ...)
+#' @rdname plot.tclust
+#' @method plot tkmeans
+plot.tkmeans <- function(x,  ...) {
+	plot.tclust(x, ...)
 }
 
 #######################
@@ -160,7 +238,7 @@ function (x, xlab, ylab, ...)
   if (missing (ylab))
     ylab <- "Second discriminant coord."
 
-  X <- discr_coords (x, x$par$equal.weights)
+  X <- discr_coords(x, x$par$equal.weights)
 
   .plot.tclust.0 (x = x, X = X, xlab = xlab, ylab = ylab, axes = 0, ...)
 }

@@ -1,5 +1,23 @@
 
 
+##  Multivariate normal density
+.dmnorm <- function (X, mu, sigma)
+{
+  ((2 * pi)^(-length(mu) / 2)) *
+  (det(sigma)^(-1/ 2)) *
+  exp (-0.5 * .evmaha (X, mu, sigma))
+}
+
+.evmaha <- function (X, mu, sigma)    ##  calculate mahalanobis distances 
+                                      ##  using the eigenvalues and eigenvectors. 
+                                      ##  thus no singularity problems arise.
+{                                     ##  Mahalanobis distance == Inf is possible.
+    v <- eigen (sigma)
+    Zt <- t (v$vectors) %*% (t (X) - mu)
+    colSums ((Zt * v$values^(-.5))^2)
+}
+
+
 ##	get a matrix object out of the sigma - tensor
 .ssclmat <- function (x, k) as.matrix (x[,,k])
 

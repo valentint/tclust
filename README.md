@@ -56,16 +56,16 @@ as the number of clusters to search for.
 
 ``` r
 library(tclust)
+#> Robust Trimmed Clustering (version 2.0-0)
 data (M5data)
 x <- M5data[, 1:2]
 
 clus.a <- tclust (x, k = 3, alpha = 0.1, restr.fact =  1,
-                  restr = "eigen", equal.weights = TRUE, warnings = 1)
+                  restr = "eigen", equal.weights = TRUE)
 clus.b <- tclust (x, k = 3, alpha = 0.1, restr.fact =  1,
-                   equal.weights = TRUE, warnings = 1)
+                   equal.weights = TRUE)
 clus.c <- tclust (x, k = 3, alpha = 0.1, restr.fact =  1,
-                  restr = "deter", equal.weights = TRUE, iter.max = 100,
-          warnings = 1)
+                  restr = "deter", equal.weights = TRUE)
 clus.d <- tclust (x, k = 3, alpha = 0.1, restr.fact = 50,
                   restr = "eigen", equal.weights = FALSE)
 

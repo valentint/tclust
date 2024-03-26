@@ -106,23 +106,19 @@
 	t (m * (d < m) + d * (d >= m) * (d <= restr.fact * m) + (restr.fact * m) * (d > restr.fact * m))	##	the return value
 }
 
-## 2do: replace .multbyrow (a, b), by a %*% diag (b)
-.multbyrow <- function (a, b) t (t(a) * as.numeric (b))		##	auxiliary function, performing an operation (*) row- rather than column-wise
-
-.restr2_deter_ <- function (autovalues, ni.ini, restr.fact, zero.tol = 1e-16)
+.restr2_deter_old <- function(autovalues, ni.ini, restr.fact, zero.tol=1e-16)
 {
-				###### function parameters:
-				###### autovalues: matrix containing eigenvalues
-				###### ni.ini: current sample size of the clusters
-				###### factor: the factor parameter in tclust program
-				###### some initializations
+    ###### function parameters:
+    ###### autovalues: matrix containing eigenvalues
+    ###### ni.ini: current sample size of the clusters
+    ###### factor: the factor parameter in tclust program
+    ###### some initializations
 
 	p = nrow (autovalues)
-
-	if (p == 1)
-		return  (.restr2_eigenv (autovalues, ni.ini, restr.fact, zero.tol))
-
 	K = ncol (autovalues)
+
+	if(p == 1)
+		return (.restr2_eigenv (autovalues, ni.ini, restr.fact, zero.tol))
 
 	es = apply (autovalues, 2, prod)
 
@@ -138,6 +134,9 @@
 																				#n	put this block into a function (for improved readability)
 	autovalues_det <- .HandleSmallEv (autovalues, zero.tol)						##	handling close to zero eigenvalues here
 
+print(autovalues)
+print(autovalues_det)
+
 #cat ("\n1d^(1/p):\t", d^(1/p), "\n")
 
 					######	we check if all the determinants verify the restrictions
@@ -149,92 +148,100 @@
 
 		dfin <- d^(1/p)
 	}
-	else
+	else {
 		dfin <- .restr2_eigenv(d^(1/p), ni.ini, restr.fact^(1/p), zero.tol)
-
-
+        cat("\ndfin coming from restr2_eigenv()...\n")
+        print(dfin)
+    }
 					######  we apply the restriction to the determinants by using the .restr2_eigenv function
 					######  In order to apply this function is neccessary to transform d and factor with the power (1/p)
 
-##cat ("\nfin:\t", dfin, "\n")
-	ret <- .multbyrow (autovalues_det, dfin)      									## autovalues_det %*% diag (dfin)
-    return(ret)
+#cat ("\nfin:\t", dfin, "\n")
+
+
+	return(autovalues_det %*% diag(as.numeric(dfin))) 							## autovalues_det %*% diag (dfin)
 }
 
-	.HandleSmallEv <- function (autovalues, zero.tol)							#n	a part of .restr2_deter_, which handles almost zero eigenvalues
-	{	##	handling close to zero eigenvalues here
-					######  populations with one eigenvalue close to 0 are very close to be contained in a hyperplane
-					######  autovalues2 is equal to autovalues except for the columns corresponding to populations close to singular
-					######  for these populations we put only one eigenvalue close to 0 and the rest far from 0   	
-		
-##        cat("\n.HandleSmallEv\n")
-        
-        K <- nrow (autovalues)													#n
+.HandleSmallEv <- function (autovalues, zero.tol)							    #n	a part of .restr2_deter_, which handles almost zero eigenvalues
+{	
 
-#o		autovalues[autovalues < zero.tol] = zero.tol
-		autovalues[autovalues <= zero.tol] <- zero.tol							#n	"<= zero.tol" for checking for zero
+    ##	handling close to zero eigenvalues here
+    ######  populations with one eigenvalue close to 0 are very close to be contained in a hyperplane
+    ######  autovalues2 is equal to autovalues except for the columns corresponding to populations close to singular
+    ######  for these populations we put only one eigenvalue close to 0 and the rest far from 0   	
+	
+	p <- nrow (autovalues)													#n
+	autovalues[autovalues <= zero.tol] <- zero.tol							#n	"<= zero.tol" for checking for zero
 
-		mi <- apply(autovalues, 2, min)											##	the minimum eigenvalue of each cluster
-		ma <- apply(autovalues, 2, max)											##	the maximum eigenvalue of each cluster
+	mi <- apply(autovalues, 2, min)											##	the minimum eigenvalue of each cluster
+	ma <- apply(autovalues, 2, max)											##	the maximum eigenvalue of each cluster
 
-#o		idx.iter <- (1:K) [ma/mi>1 / zero.tol]									#o	all clusters which have almost zero eigenvalues
-		idx.iter <- which(mi/ma <= zero.tol)									#n	making more obvious for what to check!
+	idx.iter <- which(mi/ma <= zero.tol)									#n	making more obvious for what to check!
 
-		for(i in idx.iter)														##	for each of these clusters. set all "normal" eigenvalues to a high value
-			autovalues[autovalues[,i] > mi[i] / zero.tol, i] <- mi[i] / zero.tol
+    ##  cat("\nmi/ma\n")
+    ##  print(mi/ma)
+    ##  cat("\nmi/zero.tol\n")
+    ##  print(mi/zero.tol)
+    ##  cat("\nidx.iter\n")
+    ##  print(idx.iter)
+    
+    ##	for each of these clusters. set all "normal" eigenvalues to a high value
+	for(i in idx.iter)	{
+        ##  cat("\nTo modify index: ", which(autovalues[,i] > mi[i] / zero.tol), "\n")    
+        autovalues[autovalues[,i] > mi[i] / zero.tol, i] <- mi[i] / zero.tol
+    }
+    
+    ##  cat("\nModified autovalues\n")
+    ##  print(autovalues)
 
-#o		es2 = apply(autovalues, 2, prod)
-		det = apply(autovalues, 2, prod)											#n	the new determinants
+	det = apply(autovalues, 2, prod)											#n	the new determinants
 
-					######	autovalues_det contains the autovalues corrected by the determinant
-					######	the product of the eigenvalues of each column in autovalues_det is equal to 1
+	######	autovalues_det contains the autovalues corrected by the determinant
+	######	the product of the eigenvalues of each column in autovalues_det is equal to 1
 
-#o		autovalues_det <- .multbyrow (autovalues, es2^(-1/p))
-
-		p <- nrow (autovalues)													#n
-		autovalues_det <- .multbyrow (autovalues, det^(-1/p))					#n	
-		return (autovalues_det)
-	}
-
-
-.restr2_deter_.C <- function (autovalues, ni.ini, restr.fact, p = nrow (autovalues), K = ncol (autovalues), zero.tol = 1e-16)
-{
-					##	this is an auxiliary function, wrapping the RestrictEigenValues_deter - C++ function.
-					##	results should ALWAYS be EXACTLY the same as returned by .restr2_deter_ .
-
-					##	20120831: removed "name =" argmuent name from .C call
-	ret <- .C(RestrictEigenValues_deter,
-		as.integer (c(p, K)),
-		nParOut = integer (1),
-		as.double (c (restr.fact, zero.tol)),
-		dParOut = double (1),
-		EV = as.double (autovalues),
-		as.double (ni.ini))
-
-	if (ret$nParOut[1])
-		matrix (ret$EV, nrow = p)
-	else
-		matrix (0, nrow = p, ncol = K)
+	autovalues_det <- autovalues %*% diag(det^(-1/p))  					
+	return (autovalues_det)
 }
 
+.restr2_deter_ <- function(autovalues, ni.ini, restr.factor, cshape=1e10, zero.tol = 1e-16) {
+    ## autovalues: matrix containing eigenvalues
+    ## ni.ini: current sample size of the clusters
+    ## implicitly we are using two restriction parameters: 
+    ##  - restr.factor  - constraint level for the determinant constraints
+    ##  - cshape        - constraint level for the eigenvalues constraints, default is 1e10
 
-.restr2_eigen_.C <- function (autovalues, ni.ini, restr.fact, p = nrow (autovalues), K = ncol (autovalues), zero.tol = 1e-16)
-{
-					##	this is an auxiliary function, wrapping the RestrictEigenValues - C++ function.
-					##	results should ALWAYS be EXACTLY the same as returned by .restr2_eigenv.
 
-					##	20120831: removed "name =" argmuent name from .C call
-	ret <- .C(RestrictEigenValues,
-		as.integer (c(p, K)),
-		nParOut = integer (1),
-		as.double (c (restr.fact, zero.tol)),
-		dParOut = double (1),
-		EV = as.double (autovalues),
-		as.double (ni.ini)
-	)
+    p <- nrow(autovalues)
+    K <- ncol(autovalues)
 
-	if (ret$nParOut[1])
-		matrix (ret$EV, nrow = p)
-	else
-		matrix (0, nrow = p, ncol = K)
+    autovalues[autovalues < 1e-16] <- 0
+    autovalues_ <- autovalues
+
+    if(p == 1)
+        return(.restr2_eigenv(autovalues, ni.ini, restr.factor, zero.tol))
+
+    for(k in 1:K)                                
+        autovalues_[,k] <- .restr2_eigenv(autovalues=cbind(autovalues[,k]), ni.ini=1, restr.fact=cshape, zero.tol)
+
+    ##  cat("\nautovalues_\n"); print(autovalues_)
+    
+    es <- apply(autovalues_, 2, prod)
+    es[es==0] <- 1
+    
+    ##  cat("\nes\n"); print(es)
+    
+    ##  cat("\nesmat\n"); print(matrix((es^(1/p)), ncol=K, nrow=p, byrow=TRUE))
+
+    gm <- autovalues_/matrix((es^(1/p)), ncol=K, nrow=p, byrow=TRUE)
+
+    ##  cat("\ngm\n"); print(gm)
+
+    d <- rbind(apply(autovalues/gm, 2, sum)/p)
+    d[is.nan(d)] <- 0
+
+    dfin <- .restr2_eigenv(d, ni.ini, restr.factor^(1/p), zero.tol)
+    dout <- matrix(dfin, ncol=K, nrow=p, byrow=TRUE) * (gm * (gm>0) + 1 * (gm==0))  
+    
+    return (dout)
 }
+    

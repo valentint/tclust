@@ -1,387 +1,488 @@
+##  roxygen2::roxygenise("C:/users/valen/onedrive/myrepo/r/tclust", load_code=roxygen2:::load_installed)
+##  roxygen2::roxygenise("C:/projects/statproj/r/tclust", load_code=roxygen2:::load_installed)
 
-tclust <-
-function (x, k = 3, alpha = 0.05, nstart = 50, iter.max = 20,
-          restr = c ("eigen", "deter", "sigma"), restr.fact = 12,
-          equal.weights = FALSE, center = 0, scale = 1, store.x = TRUE,
-          drop.empty.clust = TRUE, trace = 0, warnings = 3, zero.tol = 1e-16
-         )
-{
-#  Disabled arguments:
-#  restr = c ("eigen", "deter", "sigma", "dir.eigen", "dir.deter", "prop"),
-#  iter.tune,
-  ovv <- 0      ##  optimization parameter for "optVectors"
-  fuzzy <- FALSE
-  m <- 2
-  iter.tune <- 10
-  x.s <- substitute(x)
+#'
+#' TCLUST method for robust clustering
+#' 
+#' @name tclust
+#' @aliases print.tclust
+#' @description This function searches for \code{k} (or less) clusters with 
+#'  different covariance structures in a data matrix \code{x}. Relative cluster 
+#'  scatter can be restricted when \code{restr="eigen"} by constraining the ratio 
+#'  between the largest and the smallest of the scatter matrices eigenvalues 
+#'  by a constant value \code{restr.fact}. Relative cluster scatters can be also 
+#'  restricted with \code{restr="deter"} by constraining the ratio between the 
+#'  largest and the smallest of the scatter matrices' determinants. 
+#'
+#'  For robustifying the estimation, a proportion \code{alpha} of observations is trimmed. 
+#'  In particular, the trimmed k-means method is represented by the \code{tclust()} method,
+#'  by setting parameters \code{restr.fact=1}, \code{opt="HARD"} and \code{equal.weights=TRUE}. 
+#'
+#' @param x A matrix or data.frame of dimension n x p, containing the observations (row-wise). 
+#' @param k The number of clusters initially searched for.
+#' @param alpha The proportion of observations to be trimmed.
+#' @param nstart The number of random initializations to be performed.
+#' @param niter1 The number of concentration steps to be performed for the nstart initializations.
+#' @param niter2 The maximum number of concentration steps to be performed for the 
+#'  \code{nkeep} solutions kept for further iteration. The concentration steps are 
+#'  stopped, whenever two consecutive steps lead to the same data partition.
+#' @param nkeep The number of iterated initializations (after niter1 concentration 
+#'  steps) with the best values in the target function that are kept for further iterations
+#' @param iter.max (deprecated, use the combination \code{nkeep, niter1 and niter2}) 
+#'  The maximum number of concentration steps to be performed.
+#'  The concentration steps are stopped, whenever two consecutive steps lead
+#'  to the same data partition.
+#' @param equal.weights A logical value, specifying whether equal cluster weights 
+#'  shall be considered in the concentration and assignment steps.
+#' @param restr Restriction type to control relative cluster scatters. 
+#'  The default value is \code{restr="eigen"}, so that the maximal ratio between 
+#'  the largest and the smallest of the scatter matrices eigenvalues is constrained 
+#'  to be smaller then or equal to \code{restr.fact} 
+#'  (Garcia-Escudero, Gordaliza, Matran, and Mayo-Iscar, 2008). 
+#'  Alternatively, \code{restr="deter"} imposes that the maximal ratio between 
+#'  the largest and the smallest of the scatter matrices determinants is smaller 
+#'  or equal than \code{restr.fact} (see Garcia-Escudero, Mayo-Iscar and Riani, 2020) 
+#'
+#' @param restr.fact The constant \code{restr.fact >= 1} constrains the allowed 
+#'  differences among group scatters in terms of eigenvalues ratio
+#'  (if \code{restr="eigen"}) or determinant ratios (if \code{restr="deter"}). Larger values 
+#'  imply larger differences of group scatters, a value of 1 specifies the 
+#'  strongest restriction.
+#' @param cshape constraint to apply to the shape matrices, \code{cshape >= 1}, 
+#'  (see Garcia-Escudero, Mayo-Iscar and Riani, 2020)). 
+#'  This options only works if \code{restr=='deter'}. In this case the default 
+#'  value is \code{cshape=1e10} to ensure the procedure is (virtually) affine equivariant. 
+#'  On the other hand, \code{cshape} values close to 1 would force the clusters to 
+#'  be almost spherical (without necessarily the same scatters if \code{restr.fact} 
+#'  is strictly greater than 1).
+#' @param zero_tol The zero tolerance used. By default set to 1e-16.
+#' @param center Optional centering of the data: a function or a vector of length p 
+#'  which can optionally be specified for centering x before calculation
+#' @param scale Optional scaling of the data: a function or a vector of length p 
+#'  which can optionally be specified for scaling x before calculation
+#' @param store_x A logical value, specifying whether the data matrix \code{x} shall be 
+#'  included in the result object. By default this value is set to \code{TRUE}, because 
+#'  some of the plotting functions depend on this information. However, when big data 
+#'  matrices are handled, the result object's size can be decreased noticeably 
+#'  when setting this parameter to \code{FALSE}.
+#' @param parallel A logical value, specifying whether the nstart initializations should be done in parallel.
+#' @param n.cores The number of cores to use when paralellizing, only taken into account if parallel=T.
+#' @param opt Define the target function to be optimized. A classification likelihood 
+#'  target function is considered if \code{opt="HARD"} and a mixture classification 
+#'  likelihood if \code{opt="MIXT"}.
+#' @param trace Defines the tracing level, which is set to 0 by default. Tracing level 1 
+#'  gives additional information on the stage of the iterative process.
+#'
+#' @return The function returns the following values:
+#' \itemize{
+#'     \item cluster - A numerical vector of size \code{n} containing the cluster assignment 
+#'          for each observation. Cluster names are integer numbers from 1 to k, 0 indicates 
+#'          trimmed observations. Note that it could be empty clusters with no observations 
+#'          when \code{equal.weights=FALSE}.
+#'     \item obj - The value of the objective function of the best (returned) solution.
+#'     \item size - An integer vector of size k, returning the number of observations contained by each cluster.
+#'     \item weights - Vector of Cluster weights
+#'     \item centers - A matrix of size p x k containing the centers (column-wise) of each cluster. 
+#'     \item cov - 	An array of size p x p x k containing the covariance matrices of each cluster. 
+#'     \item code - A numerical value indicating if the concentration steps have 
+#'          converged for the returned solution (2).
+#'     \item posterior - A matrix with k columns that contains the posterior 
+#'          probabilities of membership of each observation (row-wise) to the \code{k} 
+#'          clusters. This posterior probabilities are 0-1 values in the 
+#'          \code{opt="HARD"} case. Trimmed observations have 0 membership probabilities 
+#'          to all clusters.
+#'     \item cluster.ini - A matrix with nstart rows and number of columns equal to 
+#'          the number of observations and where each row shows the final clustering 
+#'          assignments (0 for trimmed observations) obtained after the \code{niter1} 
+#'          iteration of the \code{nstart} random initializations.
+#'     \item obj.ini - A numerical vector of length \code{nstart} containing the values 
+#'          of the target function obtained after the \code{niter1} iteration of the 
+#'          \code{nstart} random initializations.
+#'     \item x - The input data set.
+#'     \item k - The input number of clusters.
+#'     \item alpha - The input trimming level.
+#' }
+#' 
+#' @details The procedure allows to deal with robust clustering with an \code{alpha}
+#'  proportion of trimming level and searching for \code{k} clusters. We are considering 
+#'  classification trimmed likelihood when using \code{opt=”HARD”} so that “hard” or “crisp” 
+#'  clustering assignments are done. On the other hand, mixture trimmed likelihood 
+#'  are applied when using \code{opt=”MIXT”} so providing a kind of clusters “posterior” 
+#'  probabilities for the observations. 
 
-  par <- list (x = x, x.s = x.s, k = k, alpha = alpha, nstart = nstart,
-               iter.max = iter.max, restr = restr[1], restr.fact = restr.fact,
-               equal.weights = equal.weights, center = center, scale = scale,
-			   store.x = store.x, drop.empty.clust = drop.empty.clust,
-			   trace = trace, warnings = warnings, zero.tol = zero.tol,
-			   ovv = ovv, fuzzy = fuzzy, m = m, iter.tune = iter.tune)
+#'  Relative cluster scatter can be restricted when \code{restr="eigen"} by constraining 
+#'  the ratio between the largest and the smallest of the scatter matrices eigenvalues 
+#'  by a constant value \code{restr.fact}. Setting \code{restr.fact=1}, yields the 
+#'  strongest restriction, forcing all clusters to be spherical and equally scattered. 
+#'  Relative cluster scatters can be also restricted with \code{restr="deter"} by 
+#'  constraining the ratio between the largest and the smallest of the scatter 
+#'  matrices' determinants. 
+#'
+#'  This iterative algorithm performs "concentration steps" to improve the current 
+#'  cluster assignments. For approximately obtaining the global optimum, the procedure 
+#'  is randomly initialized \code{nstart} times and \code{niter1} concentration steps are performed for 
+#'  them. The \code{nkeep} most “promising” iterations, i.e. the \code{nkeep} iterated solutions with 
+#'  the initial best values for the target function, are then iterated until convergence 
+#'  or until \code{niter2} concentration steps are done. 
+#'
+#' The parameter \code{restr.fact} defines the cluster scatter matrices restrictions, 
+#'  which are applied on all clusters during each concentration step. It restricts 
+#'  the ratio between the maximum and minimum eigenvalue of 
+#'  all clusters' covariance structures to that parameter. Setting \code{restr.fact=1}, 
+#'  yields the strongest restriction, forcing all clusters to be spherical and equally scattered. 
+#'
+#' Cluster components with similar sizes are favoured when considering \code{equal.weights=TRUE} 
+#'  while \code{equal.weights=FALSE} admits possible different prior probabilities for 
+#'  the components and it can easily return empty clusters when the number of 
+#'  clusters is greater than apparently needed.
+#' 
+#' @author Javier Crespo Guerrero, Luis Angel Garcia Escudero, Agustin Mayo Iscar.
+#' 
+#' @references 
+#' 
+#' Fritz, H.; Garcia-Escudero, L.A.; Mayo-Iscar, A. (2012), "tclust: An R Package 
+#'  for a Trimming Approach to Cluster Analysis". Journal of Statistical Software, 
+#'  47(12), 1-26. URL http://www.jstatsoft.org/v47/i12/
+#' 
+#' Garcia-Escudero, L.A.; Gordaliza, A.; Matran, C. and Mayo-Iscar, A. (2008), 
+#'  "A General Trimming Approach to Robust Cluster Analysis". Annals of Statistics, 
+#'  Vol.36, 1324--1345.  
+#'
+#' García-Escudero, L. A., Gordaliza, A. and Mayo-Íscar, A. (2014). A constrained 
+#'  robust proposal for mixture modeling avoiding spurious solutions. 
+#'  Advances in Data Analysis and Classification, 27--43. 
+#' 
+#' García-Escudero, L. A., and Mayo-Íscar, A. and Riani, M. (2020). Model-based 
+#'  clustering with determinant-and-shape constraint. Statistics and Computing, 
+#'  30, 1363--1380.] 
+#' @export
+#'
+#' @examples
+#' 
+#'  \dontshow{
+#'      set.seed (0)
+#'  }
+#'  ##--- EXAMPLE 1 ------------------------------------------
+#'  sig <- diag(2)
+#'  cen <- rep(1,2)
+#'  x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
+#'             MASS::mvrnorm(540, cen * 5,   sig * 6 - 2),
+#'             MASS::mvrnorm(100, cen * 2.5, sig * 50))
+#'  
+#'  ## Two groups and 10\% trimming level
+#'  clus <- tclust(x, k = 2, alpha = 0.1, restr.fact = 8)
+#'  
+#'  plot(clus)
+#'  plot(clus, labels = "observation")
+#'  plot(clus, labels = "cluster")
+#'  
+#'  ## Three groups (one of them very scattered) and 0\% trimming level
+#'  clus <- tclust(x, k = 3, alpha=0.0, restr.fact = 100)
+#'  
+#'  plot(clus)
+#'  
+#'  ##--- EXAMPLE 2 ------------------------------------------
+#'  data(geyser2)
+#'  (clus <- tclust(geyser2, k = 3, alpha = 0.03))
+#'  
+#'  plot(clus)
+#'  
+#'  ##--- EXAMPLE 3 ------------------------------------------
+#'  data(M5data)
+#'  x <- M5data[, 1:2]
+#'  
+#'  clus.a <- tclust(x, k = 3, alpha = 0.1, restr.fact =  1,
+#'                    restr = "eigen", equal.weights = TRUE)
+#'  clus.b <- tclust(x, k = 3, alpha = 0.1, restr.fact =  50,
+#'                     restr = "eigen", equal.weights = FALSE)
+#'  clus.c <- tclust(x, k = 3, alpha = 0.1, restr.fact =  1,
+#'                    restr = "deter", equal.weights = TRUE)
+#'  clus.d <- tclust(x, k = 3, alpha = 0.1, restr.fact = 50,
+#'                    restr = "deter", equal.weights = FALSE)
+#'  
+#'  pa <- par(mfrow = c (2, 2))
+#'  plot(clus.a, main = "(a)")
+#'  plot(clus.b, main = "(b)")
+#'  plot(clus.c, main = "(c)")
+#'  plot(clus.d, main = "(d)")
+#'  par(pa)
+#'  
+#'  ##--- EXAMPLE 4 ------------------------------------------
+#'  data (swissbank)
+#'  ## Two clusters and 8\% trimming level
+#'  (clus <- tclust(swissbank, k = 2, alpha = 0.08, restr.fact = 50))
+#'  
+#'  ## Pairs plot of the clustering solution
+#'  pairs(swissbank, col = clus$cluster + 1)
+#'  ## Two coordinates
+#'  plot(swissbank[, 4], swissbank[, 6], col = clus$cluster + 1,
+#'       xlab = "Distance of the inner frame to lower border",
+#'       ylab = "Length of the diagonal")
+#'  plot(clus)
+#'  
+#'  ## Three clusters and 0\% trimming level
+#'  clus<- tclust(swissbank, k = 3, alpha = 0.0, restr.fact = 110)
+#'  
+#'  ## Pairs plot of the clustering solution
+#'  pairs(swissbank, col = clus$cluster + 1)
+#'  
+#'  ## Two coordinates
+#'  plot(swissbank[, 4], swissbank[, 6], col = clus$cluster + 1, 
+#'        xlab = "Distance of the inner frame to lower border", 
+#'        ylab = "Length of the diagonal")
+#'  
+#'  plot(clus)
+#'  
+#'  ##--- EXAMPLE 5 ------------------------------------------
+#'   data(M5data)
+#'   x <- M5data[, 1:2]
+#'   
+#'   ## Classification trimmed likelihood approach
+#'   clus.a <- tclust(x, k = 3, alpha = 0.1, restr.fact =  50,
+#'                      opt="HARD", restr = "eigen", equal.weights = FALSE)
+#'  ## Mixture trimmed likelihood approach
+#'   clus.b <- tclust(x, k = 3, alpha = 0.1, restr.fact =  50,
+#'                      opt="MIXT", restr = "eigen", equal.weights = FALSE)
+#'  
+#'  ## Hard 0-1 cluster assignment (all 0 if trimmed unit)
+#'  head(clus.a$posterior)
+#'  
+#'  ## Posterior probabilities cluster assignment for the
+#'  ##  mixture approach (all 0 if trimmed unit)
+#'  head(clus.b$posterior)
+#'  
 
-  par <- .tclust.preproc (par)
+tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, iter.max,
+                   equal.weights=FALSE, restr=c("eigen", "deter"), restr.fact=12, cshape=1e10, opt="HARD",
+                   center=FALSE, scale=FALSE, store_x=TRUE, 
+                   parallel=FALSE, n.cores=-1, 
+                   zero_tol=1e-16, trace=0)  {
+    
+    restr <- match.arg(restr)
+    restrC <- 0
+    deterC <- restr == "deter"
 
-##  VT::22.03.2023
-##  print(        as.integer (c (dim (par$x), par$k, par$fuzzy, par$nstart, par$iter.max,
-##  		            par$equal.weights, par$restr.C, par$deter.C, par$usetrace,
-##  					par$iter.tune, par$ovv)))
+    if(!missing(iter.max)) {
+        warning("The parameter 'iter.max' is deprecated, please read the help and use the combination of 'niter1', 'niter2', 'nkeep'.")
+        niter1 <- iter.max
+    }
+        
+	parlist <- list(k=k, alpha=alpha, nstart=nstart, niter1=niter1, niter2=niter2, nkeep=nkeep, 
+        restr=restr, restr.C=restrC, deter.C=deterC, restr.fact=restr.fact, cshape=cshape,
+        equal.weights=equal.weights, center=center, scale=scale,
+#           fuzzy=fuzzy, m=m, 
+        zero_tol=zero_tol, trace=trace, store_x=store_x)
+              
+    # Initial checks
+    
+    if(is.data.frame(x))
+        x <- (data.matrix(x))
+    if(!is.matrix (x))
+        x <- as.matrix(x)
+    if(any(is.na(x)))
+        stop ("x cannot contain NA")
+    if(!is.numeric (x)) 
+        stop ("Parameter x: numeric matrix/vector expected")
+        
+    scaled <- myscale(x, center=center, scale=scale)
+    x <- scaled$x
+    if(store_x)
+        parlist$x <- x     
+  
+      if (!k >= 1) 
+        stop ("Parameter k: must be >= 1")
+      if (alpha < 0 || alpha > 1) 
+        stop ("Parameter alpha: must be in [0,1]")
+      if (niter1 < 0 || as.integer(niter1) != niter1) 
+        stop ("Parameter niter1: must be an integer >= 0")
+      if (niter2 < 0 || as.integer(niter2) != niter2) 
+        stop ("Parameter niter2: must be an integer >= 0")
+      if (nkeep < 0 || as.integer(nkeep) != nkeep) 
+        stop ("Parameter nkeep: must be an integer >= 0")
+      if (nkeep > nstart) 
+        stop ("Parameter nkeep: must be <= nstart")
+      if(!is.logical(equal.weights))
+        stop ("Parameter equal.weights: must be a logical TRUE or FALSE")
+      if(opt != "HARD" && opt != "MIXT")
+        stop ("Parameter opt: must be \"HARD\" or \"MIXT\"")
+      if(!is.logical(parallel))
+        stop ("Parameter parallel: must be a logical TRUE or FALSE")
+      if (n.cores < -2 || as.integer(n.cores) != n.cores) 
+        stop ("Parameter n.cores: must be an integer >= 0, -1 or -2")
+      if(zero_tol < 0)
+        stop ("Parameter zero_tol: must be >= 0")
+      if(trace != 0 & trace !=1)
+        stop ("Parameter trace: must be 0 or 1")
+  
+  ###
+  # FIRST STEP: get nstart solutions with niter1 concentration steps
+  ###
+  if(trace){
+    cat(paste("\nPhase 1: obtaining ", nstart, " solutions.\n", sep = ""))
+    if(parallel) cat(paste("\n Parallelizing initializations using ", n.cores, 
+        " cores. Progress bar will not display accurate information.\n", sep = ""))
+    pb <- txtProgressBar(min = 0, max = nstart, style = 3)
+  }
+  
+  if(!parallel){
+    cluster.ini <- vector("list", nstart)   ##	for containing the best values for 
+                                            ##      the parameters after several random starts
+    obj.ini <- rep(0, nstart)               ## for containing best objective values
+    
+    for(j in 1:nstart) {
+      assig_obj <- tclust_c1(x, k, alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape,
+        niter1, opt, equal.weights, zero_tol)                                                                   # niter1 steps!
+      cluster.ini[[j]] <- assig_obj$cluster
+      obj.ini[j] <- assig_obj$obj
+      
+      if(trace){
+        setTxtProgressBar(pb, j)
+      }
+    }
+  } else {
+    
+    # Setup parallel cluster
+    if(n.cores == -1){
+      n.cores <- detectCores()
+    } else if (n.cores == -2){
+      n.cores <- detectCores() - 1
+    }
+    parclus <- makeCluster(n.cores)
+    registerDoParallel(parclus)
+    
+    count <- 0
+    comb <- function(...) { # Custom combination function for the foreach loop
+      count <<- count + length(list(...)) - 1
+      setTxtProgressBar(pb, count)
+      flush.console()
+      c(...) # this can feed into .combine option of foreach
+    }
+    
+    init.results <- foreach(j = 1:nstart,
+                            .packages = "tclust",
+                            .combine = ifelse(trace, "comb", "c"),
+                            .multicombine = TRUE,
+                            .inorder = F) %dopar% {
+      assig_obj <- tclust_c1(x, k, alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape, 
+        niter1, opt, equal.weights, zero_tol)
+      
+      list(assig_obj$cluster, assig_obj$obj)
+    }
+    
+    stopCluster(parclus)
+    
+    cluster.ini <- init.results[0:(nstart-1) * 2 + 1]       # Impair positions of cluster.ini
+    obj.ini <- unlist(init.results[1:nstart * 2])           # Pair positions of cluster.ini
+  }
+  
+  
+  ###
+  # SECOND STEP: get nkeep best solutions so far
+  ###
+  if(trace){
+    cat(paste("\n\nPhase 2: obtaining ", nkeep, " best solutions out of the intial ", nstart," solutions.\n", sep = ""))
+  }
+  best_index  <- order(obj.ini, decreasing = TRUE)[1:nkeep]
+  best_assig_list <- cluster.ini[best_index]
+  
+  ###
+  # THIRD STEP: apply niter2 concentration steps to nkeep best solutions, return the best solution
+  ###
+  if(trace){
+    cat(paste("\nPhase 3: applying ", niter2, " concentration steps to each of the ", nkeep," best solutions.\n", sep = ""))
+    pb2 <- txtProgressBar(min = 0, max = nkeep, style = 3)
+  }
+  
+  best_iter <- NULL
+  best_iter_obj <- -Inf
+  
+  for(j in 1:nkeep){
+    iter <- tclust_c2(x, k, best_assig_list[[j]], alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape,
+        niter2, opt, equal.weights, zero_tol=1e-16)
+    
+    if(iter$obj > best_iter_obj){
+      best_iter <- iter
+      best_iter_obj <- iter$obj
+    }
+    
+    if(trace){
+      setTxtProgressBar(pb2, j)
+    }
+  }
+  if(trace){
+    cat("\n\n")
+  }
+  
+    ## Adjust the returned object to be similar to 'tclust': 
+    
+    ## Handle empty clusters
+    ## ...
+    k.real <- k
+    
+    ##  ...
+    
+    ##  - A list of values internally used by functions related to tclust objects.
+    int <- list(
+    	iter.successful=0, iter.converged=0,
+    	dim=dim(x))
+    
+    ## - Transpose the 'centers' matrix
+    best_iter$centers <- t(best_iter$centers)
+    
+    best_iter$cluster <- as.vector(best_iter$cluster)
+    best_iter$size <- as.vector(best_iter$size)
+    best_iter$weights <- as.vector(best_iter$weights)
+     
+    ret <- c(best_iter, list(cluster.ini=matrix(unlist(cluster.ini), byrow=TRUE, nrow=length(cluster.ini)),
+        obj.ini=obj.ini, int=int, par=parlist, k=sum(best_iter$size > 0)))
 
-  ret.C <- .C(C_tclust, DUP = TRUE,
-        as.integer (c (dim (par$x), par$k, par$fuzzy, par$nstart, par$iter.max,
-		            par$equal.weights, par$restr.C, par$deter.C, par$usetrace,
-					par$iter.tune, par$ovv)),
-        parN = integer (5),
-        as.double (c (par$alpha, par$restr.fact, par$m, par$zero.tol)),
-        parD = double (2),
-        as.double (par$x),
-        center = double (par$p * par$k),
-        cov = double (par$p * par$p * par$k),
-        cluster = integer (nrow (par$x)),
-        size = double (par$k),
-        weights = double (par$k),
-        z = double (par$z.size),
-        er.obj = double (par$nstart),
-        er.conv = integer (par$nstart))
-
-  par <- .tclust.postproc (par, ret.C)
-
-  return (par$ret)
-}
-
-.tclust.int <-
-function (x, k = 3, alpha = 0.05, nstart = 50, iter.max = 20,
-          restr = c ("eigen", "deter", "sigma"), restr.fact = 12,
-          equal.weights = FALSE, center = 0, scale = 1, store.x = TRUE,
-          drop.empty.clust = TRUE, trace = 0, warnings = 3, zero.tol = 1e-16,
-		  fuzzy = FALSE, m = 2, iter.tune = 10, ovv = 0
-         )
-{
-#  Disabled arguments:
-#  restr = c ("eigen", "deter", "sigma", "dir.eigen", "dir.deter", "prop"),
-#  iter.tune,
-#  ovv <- 0      ##  optimization parameter for "optVectors"
-#  fuzzy <- FALSE
-#  m <- 2
-#  iter.tune <- 10
-  x.s <- substitute(x)
-
-  par <- list (x = x, x.s = x.s, k = k, alpha = alpha, nstart = nstart,
-               iter.max = iter.max, restr = restr[1], restr.fact = restr.fact,
-               equal.weights = equal.weights, center = center, scale = scale,
-			   store.x = store.x, drop.empty.clust = drop.empty.clust,
-			   trace = trace, warnings = warnings, zero.tol = zero.tol,
-			   ovv = ovv, fuzzy = fuzzy, m = m, iter.tune = iter.tune)
-
-  par <- .tclust.preproc (par)
-
-  ret.C <- .C(C_tclust, DUP = TRUE,
-        as.integer (c (dim (par$x), par$k, par$fuzzy, par$nstart, par$iter.max,
-		            par$equal.weights, par$restr.C, par$deter.C, par$usetrace,
-					par$iter.tune, par$ovv)),
-        parN = integer (5),
-        as.double (c (par$alpha, par$restr.fact, par$m, par$zero.tol)),
-        parD = double (2),
-        as.double (par$x),
-        center = double (par$p * par$k),
-        cov = double (par$p * par$p * par$k),
-        cluster = integer (nrow (par$x)),
-        size = double (par$k),
-        weights = double (par$k),
-        z = double (par$z.size),
-        er.obj = double (par$nstart),
-        er.conv = integer (par$nstart))
-
-  par <- .tclust.postproc (par, ret.C)
-
-  return (par$ret)
-}
-
-
-
-.tkmeans.preproc <- function (O)
-{
-
-  O$x <- .Conv2Matrix (O$x, O$x.s)
-  if (!is.numeric (O$x))
-    stop ("parameter x: numeric matrix/vector expected")
-
-  O$usetrace <- .tr (O$trace, 0)
-
-  O$p <- ncol (O$x)
-  O$n <- nrow (O$x)
-
-  scaled <- .ScaleAdv (O$x, O$center, O$scale)
-  O$x <- scaled$x
-  O$scale <- scaled$scale
-  O$center <- scaled$center
-  O
-}
-
-.tclust.preproc <- function (O)
-{
-  O <- .tkmeans.preproc (O)
-
-  rd <- .match.restr (O$restr)
-  O$restr.C <- rd$restr
-  O$deter.C <- rd$deter
-
-  O$iter.tune <- rep (O$iter.tune, len = 3)
-
-  O$z.size <- ifelse (O$fuzzy, O$n * O$k, 0)
-  O
-}
-
-.tkmeans.postproc <- function (O, ret.C)
-{
-
-  if (ret.C$parN[4])	##	error excecution
-    stop ()
-
-  parlist <- list (k = O$k, alpha = O$alpha, nstart = O$nstart,
-                   iter.max = O$iter.max, equal.weights = O$equal.weights)
-
-  if (O$store.x)
-    parlist$x <- O$x
-
-  if (O$drop.empty.clust)
-    idxuse <- which (ret.C$size > 0)
-  else
-    idxuse <- 1:O$k
-
-  idxuse <- idxuse [order (ret.C$size[idxuse], decreasing = TRUE)]
-
-  ClusterIDs <- rep (0, O$k + 1)
-  ClusterIDs[idxuse + 1] <- 1:length (idxuse)
-
-  k.real <- length (idxuse)
-
-  int <- list (
-      iter.converged = ret.C$parN[1]
-    , iter.successful = ret.C$parN[2]
-    , dim = dim (O$x)
-    , code = ret.C$parN[3]
-    , er.obj = ret.C$er.obj
-    , er.conv = ret.C$er.conv
-  )
-
-  ret <- list (
-    centers = array (ret.C$center, c(O$p, O$k)) [,idxuse, drop = FALSE]
-    , cluster = ClusterIDs [ret.C$cluster + 2]
-    , par = parlist
-    , k = sum (ret.C$size > 0)
-    , obj = ret.C$parD[1]
-    , size = ret.C$size[idxuse]
-    , weights = ret.C$weights[idxuse]
-    , int = int
-  )
-
-  dn.x <- dimnames (O$x)
-
-  rownames (ret$centers) <-
-    if (is.null (colnames (O$x)))
-      paste ("X", 1:ncol (O$x))
-    else
-      colnames (O$x)
-#    if (is.null (dn.x[[2]])) paste ("X", 1:ncol (O$x)) else dn.x[[2]]
-  colnames (ret$centers) <- paste ("C", 1:k.real)
-
-  ret <- .tkmeans.warnings (O, ret)
-  .tkmeans.warn (O, ret)
-
-  for (i in 1:ret$k)
-    ret$centers[,i] <- ret$centers[,i] * O$scale + O$center
-
-    ## VT::07.11.2023 - transform back also the data matrix x
-    ret$par$x <- sweep(ret$par$x, 2L, O$scale, `*`, check.margin = FALSE)
-    ret$par$x <- sweep(ret$par$x, 2L, O$center, `+`, check.margin = FALSE)
-
-  class (ret) <- "tkmeans"
-
-  O$ret <- ret
-  O$idxuse <- idxuse
-  O$ClusterIDs <- ClusterIDs
-
-  return (O)
-}
-
-.get.Mm.eigen <- function (x, O)
-{
-	idx <- which (x == O$ret$cluster)
-	if (length (idx) <= 1)
-		return (rep (NA, ncol (O$x)))
-	eigen  (cov (O$x[idx, , drop = FALSE]))$value
-}
-
-.get.Mm.det <- function (x, O)
-{
-	idx <- which (x == O$ret$cluster)
-	if (length (idx) <= 1)
-		return (NA)
-	det (cov (O$x[idx, , drop = FALSE]))
-}
-
-.tclust.postproc <- function (O, ret.C)
-{
-  O <- .tkmeans.postproc (O, ret.C)
-
-  O$ret$par$restr.fact <- O$restr.fact
-  O$ret$par$restr      <- O$restr
-  O$ret$par$restr.C    <- O$restr.C
-  O$ret$par$deter.C    <- O$deter.C
-
-    O$ret$cov <- array(ret.C$cov, c (O$p, O$p, O$k))[, , O$idxuse, drop = FALSE]
-    dimnames (O$ret$cov) <- dimnames (O$ret$centers)[c (1, 1, 2)]
+    ##  - Dimnames of center and cov
+    dn.x <- dimnames(x)
+    rownames(ret$centers) <- if(is.null(colnames(x))) paste ("X", 1:ncol(x)) else colnames (x)
+    colnames(ret$centers) <- paste("C", 1:k.real)
+    dimnames(ret$cov) <- dimnames(ret$centers)[c (1, 1, 2)]
 
 	## calculate the "unrestr.fact"
-    get.Mm <- if (O$deter.C) .get.Mm.det else .get.Mm.eigen
-    EV <- sapply (1:O$ret$k, get.Mm, O = O)
-    if(all(is.na (EV)))
-	   O$ret$unrestr.fact <- 1
-    else
-	   O$ret$unrestr.fact <- ceiling (max (EV, na.rm = TRUE) / min (EV, na.rm = TRUE))
+    get.Mm <- if(parlist$deter.C) .get.Mm.det else .get.Mm.eigen
+    EV <- sapply(1:ret$k, get.Mm, ret=ret, x=x)
+    if(all(is.na(EV)))  ret$unrestr.fact <- 1
+    else	            ret$unrestr.fact <- ceiling(max(EV, na.rm=TRUE)/min(EV, na.rm=TRUE))
 
-    O$ret <- .tclust.warnings (O, O$ret)
-    .tclust.warn (O, O$ret)
-
-    if (O$fuzzy)
-        O$ret$z <- matrix (ret.C$z, O$n, O$k)[,O$idxuse]
-
-  cmm <- O$scale %*% t (O$scale)
-       #  matrix (O$scale, nrow = O$p, ncol = 1) %*%
-       #  matrix (O$scale, nrow = 1, ncol = O$p)
-
-  O$ret$mah <- array (dim = O$n)
-  O$ret$mah[!O$ret$cluster] <- NA
-
-  for (i in 1:O$ret$k)
-  {
-    idx <- O$ret$cluster == i
-    O$ret$mah[idx] <- mahalanobis (O$x[idx, , drop = FALSE], center = O$ret$centers[, i], cov = O$ret$cov[,, i])
-    O$ret$cov[,,i] <- O$ret$cov[,,i] * cmm
-  }
-
-  class (O$ret) <- c (class (O$ret), "tclust")
-
-  return (O)
-}
-
-#.tkmeans.err.exec <- function (ret.C) ret.C$parN[4]
-
-.tkmeans.warnings <- function (O, ret)
-{
-  ret$warnings <- list (
-                  singular = ret$int$code == 2
-                , iter = ret$int$iter.successful && ret$int$iter.converged /
-                         ret$int$iter.successful < 0.5
-                , drop = O$k > ret$k
-                , size = any (ret$size < O$n / 50)
-                , sizep = min (ret$size) <= O$p
-                , smallobj = ret$obj < (-1e+20)
-                )
-  return (ret)
-}
-
-.tclust.warnings <- function (O, ret)
-{
-
-  ret$warnings$restr.lo = ret$unrestr.fact > O$restr.fact
-  ret$warnings$restr.hi = ret$unrestr.fact * 2 < O$restr.fact
-
-  if (ret$warnings$sizep || ret$warnings$size)
-    ret$warnings$restr.lo <- FALSE
-
-  return (ret)
-}
-
-
-.tkmeans.warn <- function (O, ret)
-{
-  if (O$warnings >= 1)
-  {
-    if (ret$warnings$iter)
-      warning (paste ("Less than 50% of the iterations (",
-        round (ret$int$iter.converged / ret$int$iter.successful * 100, 1),
-               "%) converged - please increase iter.max.", sep = ""))
-    if (ret$warnings$smallobj)
-      warning ("Due to a very small objective function's value, the final solution does not seem to be reliable.\n  More iterations are probably needed (-> increase \"nstart\").")
-  }
-
-  if (O$warnings >= 2)
-  {
-    if (ret$warnings$singular)    ## not all iterations could be executed
-      if (ret$par$deter.C)
-        warning ("All observations are concentrated in k subspaces after trimming.")
-      else
-        warning ("All observations are concentrated in k points after trimming.")
-#        warning ("Points in the data set are concentrated in k subspaces after trimming.")
-#      else
-#        warning ("points in the data set are concentrated in k points after trimming")
-
-    if (ret$warnings$drop)
-    {
-      n.drop <- ret$par$k - ret$k
-      if (n.drop == 1)
-          warning (paste (n.drop, "empty cluster has been detected - try reducing k."))
-      else
-          warning (paste (n.drop, "empty clusters have been detected - try reducing k."))
+    ## Back transform centers, cov and x
+    cmm <- scaled$scale %*% t (scaled$scale)
+    for(i in 1:ret$k) {
+        ret$centers[,i] <- ret$centers[,i] * scaled$scale + scaled$center
+        ret$cov[,,i] <- ret$cov[,,i] * cmm
     }
-    else if (ret$warnings$size)
-      warning ("Clusters with size < n * 0.02 found - try reducing k.")
-    else if (ret$warnings$sizep)
-     warning ("Clusters with size <= p found - try reducing k.")
+    x <- sweep(x, 2L, scaled$scale, `*`, check.margin = FALSE)
+    x <- sweep(x, 2L, scaled$center, `+`, check.margin = FALSE)
+    if(store_x)
+        ret$par$x <- x
+    
+    ## Calculate mahalanobis distances
+    ret$mah <- array (dim = nrow(x))
+    ret$mah[!ret$cluster] <- NA
 
-  }
-
-}
-
-.tclust.warn <- function (O, ret)
-{
-  if (O$warnings >= 3)
-  {
-    if (ret$par$restr != "sigma")
-    {
-      if (ret$warnings$restr.lo)
-         warning (paste ("The result is artificially constrained due to ",
-         "restr.fact = ",ret$par$restr.fact,".", sep = ""))
-#       warning (paste ("The chosen restriction factor (", ret$par$restr.fact,
-#       ") artificially restricts the solution.\n",
-#       "  This solution implies a restriction factor of ",
-#       ceiling (ret$unrestr.fact), ".", sep = ""))
-
-#      if (ret$warnings$restr.hi)    ##  warning currently disabled..
-#        warning (paste ("The restriction factor (", ret$par$restr.fact,
-#        ") has been chosen too large for this solution.\n",
-#        "  This solution implies a restriction factor of ",
-#        ceiling (ret$unrestr.fact), ".", sep = ""))
+    for(i in 1:ret$k) {
+        idx <- ret$cluster == i
+        ret$mah[idx] <- mahalanobis(x[idx, , drop=FALSE], center=ret$centers[, i], cov=ret$cov[,, i])
     }
-  }
+
+    class(ret) <- "tclust"    
+    return(ret)
 }
 
-.match.restr <- function (restr)
-{
-  stopifnot (is.character (restr))
+.get.Mm.eigen <- function(ii, ret, x) {
+	idx <- which(ii==ret$cluster)
+	if(length(idx) <= 1)
+		return(rep(NA, ncol(x)))
+	eigen(cov(x[idx, , drop=FALSE]))$value
+}
 
-  restr <- restr[1]
-  restr <- match.arg (restr, c ("eigen", "deter", "sigma", "dir.eigen",
-                               "dir.deter", "prop", "none"))
-  deter <- (restr == "deter" || restr == "dir.deter")
-
-  if (restr == "eigen" || restr == "deter")
-    restr <- 0
-  else if (restr == "dir.eigen" || restr == "dir.deter")
-    restr <- 1
-  else if (restr == "sigma")
-    restr <- 2
-  else if (restr == "prop")
-    restr <- 3
-  else if (restr == "none")
-    restr <- 4
-  else
-    stop ("unknown value for parameter restr")
-
-  list (restr = restr, deter = deter)
+.get.Mm.det <- function (ii, ret, x) {
+	idx <- which(ii==ret$cluster)
+	if(length(idx) <= 1)
+		return(NA)
+	det(cov(x[idx, , drop=FALSE]))
 }
 
