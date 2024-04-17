@@ -118,6 +118,7 @@ Selected restriction factor: 100
 > 
 > #--- EXAMPLE 2 ------------------------------------------
 > data(geyser2)
+> set.seed(123)
 > (clus <- tclust(geyser2, k=3, alpha=0.03))
 * Results for TCLUST algorithm: *
 trim = 0.03, k = 3
@@ -140,8 +141,8 @@ Selected restriction factor: 12
 > plot(clus)
 >  
 > #--- EXAMPLE 3 ------------------------------------------
-> set.seed(123)
 > data (M5data)
+> set.seed(123)
 > x <- M5data[, 1:2]
 > 
 > (clus.a <- tclust(x, k=3, alpha=0.1, restr.fact=1,
@@ -414,8 +415,8 @@ Trimmed objective function:  -11200.97
 Selected restriction factor: 50 
 > 
 > #--- EXAMPLE 4 ------------------------------------------
-> set.seed(123)
 > data (swissbank)
+> set.seed(123)
 > # Two clusters and 8% trimming level
 > (clus <- tclust(swissbank, k = 2, alpha = 0.08, restr.fact = 50))
 * Results for TCLUST algorithm: *
@@ -613,4 +614,4 @@ k   0 0.04 0.08 0.12 0.16 0.2
 > 
 > proc.time()
    user  system elapsed 
-  12.12    0.51   20.53 
+   1.87    0.12   18.90 
