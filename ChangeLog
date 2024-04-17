@@ -1,8 +1,8 @@
-2024-03-18  Valentin Todorov  <valentin.todorov@chello.at>
+2024-04-17  Valentin Todorov  <valentin.todorov@chello.at>
     *
-	* DESCRIPTION (Version): 2.0-0
+	* DESCRIPTION (Version): 2.0-2
     *
-    * Completely new package, rewritten in Cpp using RcppArmadillo
+    * Completely new package, rewritten in C++ using RcppArmadillo
     *
 
 2024-01-27  Valentin Todorov  <valentin.todorov@chello.at>

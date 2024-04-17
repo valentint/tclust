@@ -18,13 +18,14 @@ tclust(
   restr = c("eigen", "deter"),
   restr.fact = 12,
   cshape = 1e+10,
-  opt = "HARD",
+  opt = c("HARD", "MIXT"),
   center = FALSE,
   scale = FALSE,
   store_x = TRUE,
   parallel = FALSE,
   n.cores = -1,
   zero_tol = 1e-16,
+  drop.empty.clust = TRUE,
   trace = 0
 )
 }
@@ -98,6 +99,11 @@ when setting this parameter to \code{FALSE}.}
 \item{n.cores}{The number of cores to use when paralellizing, only taken into account if parallel=T.}
 
 \item{zero_tol}{The zero tolerance used. By default set to 1e-16.}
+
+\item{drop.empty.clust}{Logical value specifying, whether empty clusters shall be 
+omitted in the resulting object. (The result structure does not contain center 
+and covariance estimates of empty clusters anymore. Cluster names are reassigned 
+such that the first l clusters (l <= k) always have at least one observation.}
 
 \item{trace}{Defines the tracing level, which is set to 0 by default. Tracing level 1 
 gives additional information on the stage of the iterative process.}

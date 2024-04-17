@@ -38,6 +38,10 @@
 #'  when setting this parameter to \code{FALSE}.
 #' @param parallel A logical value, specifying whether the nstart initializations should be done in parallel.
 #' @param n.cores The number of cores to use when paralellizing, only taken into account if parallel=TRUE.
+#' @param drop.empty.clust Logical value specifying, whether empty clusters shall be 
+#'  omitted in the resulting object. (The result structure does not contain center 
+#'  estimates of empty clusters anymore. Cluster names are reassigned 
+#'  such that the first l clusters (l <= k) always have at least one observation.
 #' @param trace Defines the tracing level, which is set to 0 by default. Tracing level 1 
 #'  gives additional information on the stage of the iterative process.
 #'
@@ -100,7 +104,7 @@
 tkmeans <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, iter.max, points=NULL, 
                    center=FALSE, scale=FALSE, store_x=TRUE, 
                    parallel=FALSE, n.cores=-1, 
-                   zero_tol=1e-16, trace=0)  {
+                   zero_tol=1e-16, drop.empty.clust=TRUE, trace=0)  {
     
     if(!missing(iter.max)) {
         warning("The parameter 'iter.max' is deprecated, please read the help and use the combination of 'niter1', 'niter2', 'nkeep'.")
@@ -117,7 +121,7 @@ tkmeans <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, 
         
 	parlist <- list(k=k, alpha=alpha, nstart=nstart, niter1=niter1, niter2=niter2, nkeep=nkeep, 
         center=center, scale=scale,
-        zero_tol=zero_tol, trace=trace, store_x=store_x,
+        zero_tol=zero_tol, drop.empty.clust=drop.empty.clust, trace=trace, store_x=store_x,
         equal.weights=TRUE)
               
     # Initial checks
@@ -254,10 +258,16 @@ tkmeans <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, 
     ## Adjust the returned object to be similar to 'tkmeans': 
     
     ## Handle empty clusters
-    ## ...
-    k.real <- k
+    if(drop.empty.clust)
+        idxuse <- which(best_iter$size > 0)
+    else
+        idxuse <- 1:k
+    idxuse <- idxuse[order(best_iter$size[idxuse], decreasing = TRUE)]
     
-    ##  ...
+    ClusterIDs <- rep(0, k + 1)
+    ClusterIDs[idxuse + 1] <- 1:length(idxuse)
+
+    k.real <- length(idxuse)
     
     ##  - A list of values internally used by functions related to tclust objects.
     int <- list(
@@ -266,9 +276,13 @@ tkmeans <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, 
     
     ## - Transpose the 'centers' matrix
     best_iter$centers <- t(best_iter$centers)
+    best_iter$centers <- best_iter$centers[, idxuse, drop = FALSE]
     
     best_iter$cluster <- as.vector(best_iter$cluster)
+    best_iter$cluster <- ClusterIDs[best_iter$cluster + 1]
     best_iter$size <- as.vector(best_iter$size)
+    best_iter$size <- best_iter$size[idxuse]
+
     best_iter$cov <- NULL
     best_iter$posterior <- NULL
      

@@ -22,31 +22,36 @@ x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
 (clus <- tclust(x, k = 3, alpha=0.0, restr.fact = 100))
 
 
-#--- EXAMPLE 3 ------------------------------------------
+#--- EXAMPLE 2 ------------------------------------------
+data(geyser2)
 set.seed(123)
+(clus <- tclust(geyser2, k=3, alpha=0.03))
+plot(clus)
+ 
+#--- EXAMPLE 3 ------------------------------------------
 data (M5data)
+set.seed(123)
 x <- M5data[, 1:2]
 
-(clus.a <- tclust(x, k = 3, alpha = 0.1, restr.fact =  1,
-                  restr = "eigen", equal.weights = TRUE))
-(clus.b <- tclust(x, k = 3, alpha = 0.1, restr.fact =  1,
-                    equal.weights = TRUE))
-##  (clus.c <- tclust(x, k = 3, alpha = 0.1, restr.fact =  1,
-##                    restr = "deter", equal.weights = TRUE))
-(clus.d <- tclust(x, k = 3, alpha = 0.1, restr.fact = 50,
-                  restr = "eigen", equal.weights = FALSE))
+(clus.a <- tclust(x, k=3, alpha=0.1, restr.fact=1,
+                  restr = "eigen", equal.weights=TRUE))
+(clus.b <- tclust(x, k=3, alpha=0.1, restr.fact=50,
+                    restr="eigen", equal.weights=TRUE))
+(clus.c <- tclust(x, k=3, alpha=0.1, restr.fact=1,
+                    restr="deter", equal.weights=TRUE))
+(clus.d <- tclust(x, k=3, alpha=0.1, restr.fact=50,
+                    restr="eigen", equal.weights=FALSE))
 
 #--- EXAMPLE 4 ------------------------------------------
-set.seed(123)
 data (swissbank)
+set.seed(123)
 # Two clusters and 8% trimming level
 (clus <- tclust(swissbank, k = 2, alpha = 0.08, restr.fact = 50))
 
 # Three clusters and 0% trimming level
 (clus <- tclust(swissbank, k = 3, alpha = 0.0, restr.fact = 110))
 
-
-##### Discriminant Factor Analysis for tclust Objects ############################
+##### Discriminant Factor Analysis for tclust Objects ####################
 sig <- diag (2)
 cen <- rep (1, 2)
 x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
