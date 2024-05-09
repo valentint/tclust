@@ -644,6 +644,107 @@ void concentration_steps(int niter, arma::mat x, iteration &iter, params &pa)
   calcObj(x, iter, pa); // calculates the objetive function value
 }
 
+// Internal function for concentration steps (refinement) in tclust2
+// @name tclust_c2
+// @param x Rcpp::NumericMatrix, The input data.
+// @param k The number of clusters initially searched for.
+// @param cluster arma::uvec A numerical vector of size \code{n} containing the 
+//      cluster assignment for each observation. Cluster names are integer numbers 
+//      from 1 to k, 0 indicates trimmed observations. Note that it could be empty 
+//      clusters with no observations when \code{equal_weights=FALSE}.
+// @param alpha double, The proportion of observations to be trimmed.
+// @param restrC Restriction type (0 for restriction on eigenvalues or determinant)
+// @param deterC Restriction on determinants (true or false)
+// @param restr_fact The constant \code{restr_fact >= 1} constrains the allowed 
+//  differences among group scatters in terms of eigenvalues ratio. Larger values 
+//  imply larger differences of group scatters, a value of 1 specifies the 
+//  strongest restriction.
+// @param cshape Shape constraint
+// @param niter2 The maximum number of concentration steps to be performed for the 
+//  \code{nkeep} solutions kept for further iteration. The concentration steps are 
+//  stopped, whenever two consecutive steps lead to the same data partition.
+// @param opt Define the target function to be optimized. A classification likelihood 
+//  target function is considered if \code{opt="HARD"} and a mixture classification 
+//  likelihood if \code{opt="MIXT"}.
+// @param equal_weights A logical value, specifying whether equal cluster weights 
+//  shall be considered in the concentration and assignment steps.
+// @param zero_tol The zero tolerance used. By default set to 1e-16.
+// @export
+// [[Rcpp::export]]
+iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
+                     int restrC=0, bool deterC=false, double restr_fact = 12, double cshape=1e10,
+                     int niter2 = 20, Rcpp::String opt = "HARD",
+                     bool equal_weights = false, double zero_tol = 1e-16)
+{
+
+    int n = x.n_rows;
+    int p = x.n_cols;
+    int no_trim = std::floor(n * (1 - alpha));
+    
+    // Build the posterior matrix
+    arma::uvec tc_set;
+    arma::uvec one_to_n = arma::linspace<arma::uvec>(0, n - 1, n);
+    arma::uvec aux_assig = cluster - 1 + (cluster == 0);
+    tc_set = cluster > 0;         // not trimmed observations
+    
+    // 2xn matrix containing (observation, cluster) pairs in each column
+    arma::umat subscripts = (arma::join_rows(one_to_n, aux_assig)).t();
+    
+    arma::mat posterior(n, k);
+    posterior.elem(arma::sub2ind(arma::size(posterior), subscripts)) = arma::ones<arma::vec>(n);
+    
+    //VT::04.05.2024 - Fix the issue reported by Domenico:
+    //    all trimmed observations were assigned to the first class (0)
+    posterior.each_col() %= arma::conv_to<arma::vec>::from(tc_set); // Set to 0 all trimmed rows
+    
+    arma::vec size = (arma::sum(posterior, 0)).t();
+    
+    params pa;
+    pa.n = n;
+    pa.p = p;
+    pa.alpha = alpha;
+    pa.no_trim = no_trim;
+    pa.trimm = n - no_trim;
+    pa.k = k;
+    pa.equal_weights = equal_weights;
+    pa.zero_tol = zero_tol;
+    pa.restrC = restrC;
+    pa.deterC = deterC;
+    pa.restr_fact = restr_fact;
+    pa.cshape = cshape;
+    pa.opt = opt;
+    
+    iteration iter;
+    iter.centers = arma::mat(k, p);
+    iter.cov = arma::cube(p, p, k);
+    iter.cluster = cluster;
+    iter.obj = 0.0,
+    iter.size = size;
+    iter.weights = size / no_trim;
+    iter.code = 0;
+    iter.posterior = posterior;
+    
+    estimClustPar(x, iter, pa);
+    
+    // VT::06.05.2024 - If niter2==0 (no iterations in the second step) tclust_c2 could
+    //  break with "chol(): decomposition failed" - this happens if nkeep = nstart, i.e.
+    // call tclust_c2 on all tried solutions (nstart) and at leats one of the solutions
+    // has a class with one member which means that its covariance is the zero matrix.
+    //  To solve this, we do an exctra call to frestr(), if niter2 == 0.
+    if(niter2 == 0) {
+        //  iter.cov.print("Before restriction");
+        //  iter.size.print("Size");
+        
+        fRestr(iter, pa); 
+    
+        //  iter.cov.print("After restriction");
+    }
+    
+    concentration_steps(niter2, x, iter, pa);
+    
+    return iter;
+}
+
 // Internal function for concentration steps (initializations) in tclust2
 // @name tclust_c1
 // @param x Rcpp::NumericMatrix, The input data.
@@ -704,90 +805,22 @@ Rcpp::List tclust_c1(arma::mat x, int k, double alpha = 0.05,
   initClusters(x, iter, pa);                // Cluster random initialization
   concentration_steps(niter1, x, iter, pa); // Apply niter1 concentration steps
 
+/*
+  iteration iter1;
+  Rcout << "Before tclust_c2():" << std::endl; 
+  iter1 = tclust_c2(x, k, iter.cluster, alpha,
+                     restrC, deterC, restr_fact, cshape,
+                     0, opt, equal_weights, zero_tol);
+  Rcout << "After tclust_c2():" << std::endl; 
+  iter.centers.print("C1");
+  iter1.centers.print("C2");
+*/
+  
   return Rcpp::List::create(
       _["obj"] = iter.obj,
       _["cluster"] = iter.cluster);
 }
 
-// Internal function for concentration steps (refinement) in tclust2
-// @name tclust_c2
-// @param x Rcpp::NumericMatrix, The input data.
-// @param k The number of clusters initially searched for.
-// @param cluster arma::uvec A numerical vector of size \code{n} containing the 
-//      cluster assignment for each observation. Cluster names are integer numbers 
-//      from 1 to k, 0 indicates trimmed observations. Note that it could be empty 
-//      clusters with no observations when \code{equal_weights=FALSE}.
-// @param alpha double, The proportion of observations to be trimmed.
-// @param restrC Restriction type (0 for restriction on eigenvalues or determinant)
-// @param deterC Restriction on determinants (true or false)
-// @param restr_fact The constant \code{restr_fact >= 1} constrains the allowed 
-//  differences among group scatters in terms of eigenvalues ratio. Larger values 
-//  imply larger differences of group scatters, a value of 1 specifies the 
-//  strongest restriction.
-// @param cshape Shape constraint
-// @param niter2 The maximum number of concentration steps to be performed for the 
-//  \code{nkeep} solutions kept for further iteration. The concentration steps are 
-//  stopped, whenever two consecutive steps lead to the same data partition.
-// @param opt Define the target function to be optimized. A classification likelihood 
-//  target function is considered if \code{opt="HARD"} and a mixture classification 
-//  likelihood if \code{opt="MIXT"}.
-// @param equal_weights A logical value, specifying whether equal cluster weights 
-//  shall be considered in the concentration and assignment steps.
-// @param zero_tol The zero tolerance used. By default set to 1e-16.
-// @export
-// [[Rcpp::export]]
-iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
-                     int restrC=0, bool deterC=false, double restr_fact = 12, double cshape=1e10,
-                     int niter2 = 20, Rcpp::String opt = "HARD",
-                     bool equal_weights = false, double zero_tol = 1e-16)
-{
-
-  int n = x.n_rows;
-  int p = x.n_cols;
-  int no_trim = std::floor(n * (1 - alpha));
-  
-  // Build the posterior matrix
-  arma::uvec one_to_n = arma::linspace<arma::uvec>(0, n - 1, n);
-  arma::uvec aux_assig = cluster - 1 + (cluster == 0);
-  
-  // 2xn matrix containing (observation, cluster) pairs in each column
-  arma::umat subscripts = (arma::join_rows(one_to_n, aux_assig)).t();
-  
-  arma::mat posterior(n, k);
-  posterior.elem(arma::sub2ind(arma::size(posterior), subscripts)) = arma::ones<arma::vec>(n);
-  
-  arma::vec size = (arma::sum(posterior, 0)).t();
-  
-  params pa;
-  pa.n = n;
-  pa.p = p;
-  pa.alpha = alpha;
-  pa.no_trim = no_trim;
-  pa.trimm = n - no_trim;
-  pa.k = k;
-  pa.equal_weights = equal_weights;
-  pa.zero_tol = zero_tol;
-  pa.restrC = restrC;
-  pa.deterC = deterC;
-  pa.restr_fact = restr_fact;
-  pa.cshape = cshape;
-  pa.opt = opt;
-
-  iteration iter;
-  iter.centers = arma::mat(k, p);
-  iter.cov = arma::cube(p, p, k);
-  iter.cluster = cluster;
-  iter.obj = 0.0,
-  iter.size = size;
-  iter.weights = size / no_trim;
-  iter.code = 0;
-  iter.posterior = posterior;
-  
-  estimClustPar(x, iter, pa);
-   
-  concentration_steps(niter2, x, iter, pa);
-  return iter;
-}
 
 // [[Rcpp::export]]
 arma::mat tclust_restr2_eigenv(arma::mat autovalues, arma::vec ni_ini, double factor_e=12, double zero_tol=1e-16) {

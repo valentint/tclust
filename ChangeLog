@@ -1,3 +1,13 @@
+2024-05-04  Valentin Todorov  <valentin.todorov@chello.at>
+    *
+	* DESCRIPTION (Version): 2.0-4
+    *
+    * Corrections in the vignette
+    * tests\ttclust.R - Suppressed tests of ctlcurves which could give 
+    *   differences on some architectures, also run quite slow
+    * src\tclust.cpp, tkmeans.cpp - fixed a bug: issue reported by Domenico
+    *
+    
 2024-04-17  Valentin Todorov  <valentin.todorov@chello.at>
     *
 	* DESCRIPTION (Version): 2.0-3

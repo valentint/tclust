@@ -68,13 +68,14 @@ x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
 (dsc.2 <- DiscrFact(clus.2))
 
 
-########## Classification Trimmed Likelihood Curves  ###################
+########## Classification Trimmed Likelihood Curves  ################### 
 
 ## Do not run - it takes too long and can show differences on some
 ##  architectures due to the random numbers.
 ##
 #--- EXAMPLE 1 ------------------------------------------
 
+if(FALSE) {
     sig <- diag (2)
     cen <- rep (1, 2)
     x <- rbind(MASS::mvrnorm(108, cen * 0,   sig),
@@ -83,8 +84,10 @@ x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
     )
 
     (ctl <- ctlcurves(x, k = 1:4))
+}
 
 #--- EXAMPLE 2 ------------------------------------------
-
-data (geyser2)
-(ctl <- ctlcurves(geyser2, k = 1:5))
+if(FALSE) {
+    data (geyser2)
+    (ctl <- ctlcurves(geyser2, k = 1:5))
+}

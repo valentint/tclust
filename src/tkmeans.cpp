@@ -233,14 +233,20 @@ iteration tkmeans_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05
     int no_trim = std::floor(n * (1 - alpha));
     
     // Build the posterior matrix
+    arma::uvec tc_set;
     arma::uvec one_to_n = arma::linspace<arma::uvec>(0, n - 1, n);
     arma::uvec aux_assig = cluster - 1 + (cluster == 0);
+    tc_set = cluster > 0;         // not trimmed observations
     
     // 2xn matrix containing (observation, cluster) pairs in each column
     arma::umat subscripts = (arma::join_rows(one_to_n, aux_assig)).t();
     
     arma::mat posterior(n, k);
     posterior.elem(arma::sub2ind(arma::size(posterior), subscripts)) = arma::ones<arma::vec>(n);
+
+    //VT::04.05.2024 - Fix the issue reported by Domenico:
+    //    all trimmed observations were assigned to the first class (0)
+    posterior.each_col() %= arma::conv_to<arma::vec>::from(tc_set); // Set to 0 all trimmed rows
     
     arma::vec size = (arma::sum(posterior, 0)).t();
 
