@@ -16,6 +16,8 @@ importFrom("parallel", "detectCores", "makeCluster", "stopCluster")
 import("foreach", "foreach")
 import(doParallel)
 
+importFrom("ellipsis", "check_dots_used")
+
 export(
     simula.rlg,
     simula.tclust,
@@ -40,7 +42,8 @@ export(
     
     tkmeans,
     print.tkmeans,
-    plot.tkmeans
+    plot.tkmeans,
+    tclustIC
 )
 
 #   S3method (print, rlg)
@@ -54,4 +57,8 @@ S3method (print, ctlcurves)
 S3method (plot, ctlcurves)
 S3method (print, tkmeans)
 S3method (plot, tkmeans)
+S3method (print, tclustIC)
+S3method (summary, tclustIC)
+S3method (print, summary.tclustIC)
+S3method (plot, tclustIC)
 

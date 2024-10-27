@@ -1,4 +1,6 @@
 #'
+#' @export
+
 print.tclust <- function (x, ...)
 {
   cat ("* Results for TCLUST algorithm: *\n")
@@ -21,6 +23,8 @@ print.tclust <- function (x, ...)
 
   invisible(x)
 }
+
+#' @export
 
 print.tkmeans <- function (x, ...) {
   cat ("* Results for TKMEANS algorithm: *\n")

@@ -43,7 +43,7 @@
 #'
 #' @examples
 #'
-#' \dontrun{
+#' \donttest{
 #'
 #'  #--- EXAMPLE 1 ------------------------------------------
 #'
@@ -195,6 +195,7 @@ ctlcurves <- function(x, k=1:4, alpha=seq(0, 0.2, len=6), restr.fact=50, paralle
 #'
 #'  #--- EXAMPLE 1 ------------------------------------------
 #'
+#'  \donttest{
 #'  sig <- diag (2)
 #'  cen <- rep (1, 2)
 #'  x <- rbind(MASS::mvrnorm(108, cen * 0,   sig),
@@ -204,7 +205,8 @@ ctlcurves <- function(x, k=1:4, alpha=seq(0, 0.2, len=6), restr.fact=50, paralle
 #'  (ctl <- ctlcurves(x, k = 1:4))
 #'
 #'  plot(ctl)
-
+#'  }
+#'
 plot.ctlcurves <- function(x, what=c("obj", "min.weights", "doubtful"),
          main, xlab, ylab, xlim, ylim, col, lty=1, ...)
 {
@@ -282,6 +284,8 @@ plot.ctlcurves <- function(x, what=c("obj", "min.weights", "doubtful"),
   if (what == "out")
     lines (x$par$alpha, nrow (x$par$x) * (1-x$par$alpha) * x$par$mah.alpha, lty = 2)
 }
+
+#' @export
 
 print.ctlcurves <- function (x, ...) {
 

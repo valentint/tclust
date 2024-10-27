@@ -9,12 +9,12 @@ rlg_c2 <- function(x, d, cluster, alpha = 0.05, niter2 = 20L) {
     .Call(`_tclust_rlg_c2`, x, d, cluster, alpha, niter2)
 }
 
-tclust_c1 <- function(x, k, alpha = 0.05, restrC = 0L, deterC = FALSE, restr_fact = 12, cshape = 1e10, niter1 = 3L, opt = "HARD", equal_weights = FALSE, zero_tol = 1e-16) {
-    .Call(`_tclust_tclust_c1`, x, k, alpha, restrC, deterC, restr_fact, cshape, niter1, opt, equal_weights, zero_tol)
-}
-
 tclust_c2 <- function(x, k, cluster, alpha = 0.05, restrC = 0L, deterC = FALSE, restr_fact = 12, cshape = 1e10, niter2 = 20L, opt = "HARD", equal_weights = FALSE, zero_tol = 1e-16) {
     .Call(`_tclust_tclust_c2`, x, k, cluster, alpha, restrC, deterC, restr_fact, cshape, niter2, opt, equal_weights, zero_tol)
+}
+
+tclust_c1 <- function(x, k, alpha = 0.05, restrC = 0L, deterC = FALSE, restr_fact = 12, cshape = 1e10, niter1 = 3L, opt = "HARD", equal_weights = FALSE, zero_tol = 1e-16) {
+    .Call(`_tclust_tclust_c1`, x, k, alpha, restrC, deterC, restr_fact, cshape, niter1, opt, equal_weights, zero_tol)
 }
 
 tclust_restr2_eigenv <- function(autovalues, ni_ini, factor_e = 12, zero_tol = 1e-16) {

@@ -59,7 +59,7 @@ These curves show the values of the trimmed classification (log-)likelihoods
 }
 \examples{
 
-\dontrun{
+\donttest{
 
  #--- EXAMPLE 1 ------------------------------------------
 

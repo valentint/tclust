@@ -96,7 +96,7 @@ when setting this parameter to \code{FALSE}.}
 
 \item{parallel}{A logical value, specifying whether the nstart initializations should be done in parallel.}
 
-\item{n.cores}{The number of cores to use when paralellizing, only taken into account if parallel=T.}
+\item{n.cores}{The number of cores to use when paralellizing, only taken into account if \code{parallel=TRUE}.}
 
 \item{zero_tol}{The zero tolerance used. By default set to 1e-16.}
 
@@ -116,6 +116,8 @@ The function returns the following values:
          trimmed observations. Note that it could be empty clusters with no observations 
          when \code{equal.weights=FALSE}.
     \item obj - The value of the objective function of the best (returned) solution.
+    \item NlogL - A value related to the classification log-likelihood of the best (returned) solution. 
+         If \code{opt=="HARD"}, \code{NlogL = -2*obj}.
     \item size - An integer vector of size k, returning the number of observations contained by each cluster.
     \item weights - Vector of Cluster weights
     \item centers - A matrix of size p x k containing the centers (column-wise) of each cluster. 
@@ -127,6 +129,16 @@ The function returns the following values:
          clusters. This posterior probabilities are 0-1 values in the 
          \code{opt="HARD"} case. Trimmed observations have 0 membership probabilities 
          to all clusters.
+     \item{MIXMIX} - BIC which based on the parameters estimated through the mixture log-likelihood and 
+         the maximized mixture likelihood as goodness of fit measure. This output 
+         is present only  if \code{opt="MIXT"}.
+     \item{MIXMIX} - BIC which uses the classification likelihood based on
+         parameters estimated through the mixture likelihood (In some books 
+         this quantity is called ICL). This output 
+         is present only  if \code{opt="MIXT"}.
+    \item{CLACLA} - BIC which uses the classification likelihood based on
+         parameters estimated using the classification likelihood. This output 
+         is present only  if \code{opt="HARD"}.
     \item cluster.ini - A matrix with nstart rows and number of columns equal to 
          the number of observations and where each row shows the final clustering 
          assignments (0 for trimmed observations) obtained after the \code{niter1} 
@@ -215,7 +227,7 @@ Cluster components with similar sizes are favoured when considering \code{equal.
  
  plot(clus)
  
-\dontrun{
+\donttest{
 
  ##--- EXAMPLE 3 ------------------------------------------
  data(M5data)

@@ -285,7 +285,10 @@ tkmeans <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, 
 
     best_iter$cov <- NULL
     best_iter$posterior <- NULL
-     
+
+    best_iter$NlogL <- NULL     
+    best_iter$disttom <- NULL
+    
     ret <- c(best_iter, list(cluster.ini=matrix(unlist(cluster.ini), byrow=TRUE, nrow=length(cluster.ini)),
         obj.ini=obj.ini, int=int, par=parlist, k=sum(best_iter$size > 0)))
 

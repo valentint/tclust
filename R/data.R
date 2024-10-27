@@ -177,3 +177,32 @@ NULL
 #
 #' @keywords datasets
 NULL
+#' Flea
+#'
+#' Flea-beetle measurements
+#'
+#' @name flea
+#' @docType data
+#' @usage data(flea)
+#' @format A data frame with 74 rows and 7 variables: six explanatory and one response variable - \code{species}.
+#' The variables are as follows:
+#'
+#' \itemize{
+#'   \item tars1: width of the first joint of the first tarsus in microns (the sum of measurements for both tarsi)
+#'   \item tars2: the same for the second joint
+#'   \item head: the maximal width of the head between the external edges of the eyes in 0.01 mm
+#'   \item ade1: the maximal width of the aedeagus in the fore-part in microns
+#'   \item ade2: the front angle of the aedeagus ( 1 unit = 7.5 degrees)
+#'   \item ade3: the aedeagus width from the side in microns
+#'   \item species, which species is being examined - \code{Concinna}, \code{Heptapotamica}, \code{Heikertingeri}
+#' }
+#'
+#'
+#' @references A. A. Lubischew (1962), On the Use of Discriminant Functions in Taxonomy, \emph{Biometrics}, \bold{18}4 pp.455--477.
+#'
+#' @examples
+#'  data(flea)
+#'  head(flea)
+#'
+#' @keywords datasets
+NULL

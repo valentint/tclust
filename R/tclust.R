@@ -65,7 +65,7 @@
 #'  matrices are handled, the result object's size can be decreased noticeably 
 #'  when setting this parameter to \code{FALSE}.
 #' @param parallel A logical value, specifying whether the nstart initializations should be done in parallel.
-#' @param n.cores The number of cores to use when paralellizing, only taken into account if parallel=T.
+#' @param n.cores The number of cores to use when paralellizing, only taken into account if \code{parallel=TRUE}.
 #' @param opt Define the target function to be optimized. A classification likelihood 
 #'  target function is considered if \code{opt="HARD"} and a mixture classification 
 #'  likelihood if \code{opt="MIXT"}.
@@ -83,6 +83,8 @@
 #'          trimmed observations. Note that it could be empty clusters with no observations 
 #'          when \code{equal.weights=FALSE}.
 #'     \item obj - The value of the objective function of the best (returned) solution.
+#'     \item NlogL - A value related to the classification log-likelihood of the best (returned) solution. 
+#'          If \code{opt=="HARD"}, \code{NlogL = -2*obj}.
 #'     \item size - An integer vector of size k, returning the number of observations contained by each cluster.
 #'     \item weights - Vector of Cluster weights
 #'     \item centers - A matrix of size p x k containing the centers (column-wise) of each cluster. 
@@ -94,6 +96,16 @@
 #'          clusters. This posterior probabilities are 0-1 values in the 
 #'          \code{opt="HARD"} case. Trimmed observations have 0 membership probabilities 
 #'          to all clusters.
+#'      \item{MIXMIX} - BIC which based on the parameters estimated through the mixture log-likelihood and 
+#'          the maximized mixture likelihood as goodness of fit measure. This output 
+#'          is present only  if \code{opt="MIXT"}.
+#'      \item{MIXMIX} - BIC which uses the classification likelihood based on
+#'          parameters estimated through the mixture likelihood (In some books 
+#'          this quantity is called ICL). This output 
+#'          is present only  if \code{opt="MIXT"}.
+#'     \item{CLACLA} - BIC which uses the classification likelihood based on
+#'          parameters estimated using the classification likelihood. This output 
+#'          is present only  if \code{opt="HARD"}.
 #'     \item cluster.ini - A matrix with nstart rows and number of columns equal to 
 #'          the number of observations and where each row shows the final clustering 
 #'          assignments (0 for trimmed observations) obtained after the \code{niter1} 
@@ -190,7 +202,7 @@
 #'  
 #'  plot(clus)
 #'  
-#' \dontrun{
+#' \donttest{
 #'
 #'  ##--- EXAMPLE 3 ------------------------------------------
 #'  data(M5data)
@@ -278,12 +290,12 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     }
         
 	parlist <- list(k=k, alpha=alpha, nstart=nstart, niter1=niter1, niter2=niter2, nkeep=nkeep, 
-        restr=restr, restr.C=restrC, deter.C=deterC, restr.fact=restr.fact, cshape=cshape,
+        restr=restr, restr.C=restrC, deter.C=deterC, restr.fact=restr.fact, cshape=cshape, opt=opt,
         equal.weights=equal.weights, center=center, scale=scale,
 #           fuzzy=fuzzy, m=m, 
         zero_tol=zero_tol, drop.empty.clust=drop.empty.clust, trace=trace, store_x=store_x)
               
-    # Initial checks
+    ## Initial checks
     
     if(is.data.frame(x))
         x <- (data.matrix(x))
@@ -293,7 +305,10 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
         stop ("x cannot contain NA")
     if(!is.numeric (x)) 
         stop ("Parameter x: numeric matrix/vector expected")
-        
+
+    parlist$n <- n <- nrow(x)
+    parlist$p <- p <- ncol(x)
+            
     scaled <- myscale(x, center=center, scale=scale)
     x <- scaled$x
     if(store_x)
@@ -313,8 +328,6 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
         stop ("Parameter nkeep: must be <= nstart")
       if(!is.logical(equal.weights))
         stop ("Parameter equal.weights: must be a logical TRUE or FALSE")
-      if(opt != "HARD" && opt != "MIXT")
-        stop ("Parameter opt: must be \"HARD\" or \"MIXT\"")
       if(!is.logical(parallel))
         stop ("Parameter parallel: must be a logical TRUE or FALSE")
       if (n.cores < -2 || as.integer(n.cores) != n.cores) 
@@ -329,8 +342,8 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
   ###
   if(trace){
     cat(paste("\nPhase 1: obtaining ", nstart, " solutions.\n", sep = ""))
-    if(parallel) cat(paste("\n Parallelizing initializations using ", n.cores, 
-        " cores. Progress bar will not display accurate information.\n", sep = ""))
+    if(parallel) cat("\n Running parallel initializations.", 
+        "\nProgress bar will not display accurate information.\n")
     pb <- txtProgressBar(min = 0, max = nstart, style = 3)
   }
   
@@ -403,25 +416,26 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     pb2 <- txtProgressBar(min = 0, max = nkeep, style = 3)
   }
   
-  best_iter <- NULL
-  best_iter_obj <- -Inf
-  
-  for(j in 1:nkeep){
-    iter <- tclust_c2(x, k, best_assig_list[[j]], alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape,
-        niter2, opt, equal.weights, zero_tol=1e-16)
+    best_iter <- NULL
+    best_iter_obj <- -Inf
     
-    if(iter$obj > best_iter_obj){
-      best_iter <- iter
-      best_iter_obj <- iter$obj
+    for(j in 1:nkeep){
+        iter <- tclust_c2(x, k, best_assig_list[[j]], alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape,
+            niter2, opt, equal.weights, zero_tol=1e-16)
+        
+        if(iter$obj > best_iter_obj){
+            best_iter <- iter
+            best_iter_obj <- iter$obj
+        }
+    
+        if(trace){
+            setTxtProgressBar(pb2, j)
+        }
     }
-    
+
     if(trace){
-      setTxtProgressBar(pb2, j)
+        cat("\n\n")
     }
-  }
-  if(trace){
-    cat("\n\n")
-  }
   
     ## Adjust the returned object to be similar to 'tclust': 
     
@@ -456,8 +470,10 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     best_iter$weights <- as.vector(best_iter$weights)
     best_iter$weights <- best_iter$weights[idxuse]
      
+    best_iter$disttom <- NULL       # remove disttom which is used only in tkmeans objects
+    
     ret <- c(best_iter, list(cluster.ini=matrix(unlist(cluster.ini), byrow=TRUE, nrow=length(cluster.ini)),
-        obj.ini=obj.ini, int=int, par=parlist, k=sum(best_iter$size > 0)))
+                obj.ini=obj.ini, int=int, par=parlist, k=sum(best_iter$size > 0)))
 
     ##  - Dimnames of center and cov
     dn.x <- dimnames(x)
@@ -491,6 +507,16 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
         ret$mah[idx] <- mahalanobis(x[idx, , drop=FALSE], center=ret$centers[, i], cov=ret$cov[,, i])
     }
 
+    ## VT::25.09.2024
+    ## Compute information criteria
+    ic <- .getIC(ret)
+    if(opt == "HARD") 
+        ret$CLACLA <- ic$CLACLA
+    else {
+        ret$MIXMIX <- ic$MIXMIX
+        ret$MIXCLA <- ic$MIXCLA
+    }
+    
     class(ret) <- "tclust"    
     return(ret)
 }
@@ -509,3 +535,33 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
 	det(cov(x[idx, , drop=FALSE]))
 }
 
+.getIC <- function(obj) {
+
+    n <- obj$par$n
+    p <- obj$par$p
+    MIXMIX <- MIXCLA <- CLACLA <- NULL
+    h <- floor((1 - obj$par$alpha) * n)
+    
+    NlogL <- obj$NlogL
+    NlogLmixt <- if(obj$par$opt == "HARD") NULL else -2*obj$obj
+    npar <- p * obj$k            # p * k
+    if(!obj$par$equal.weights)   # if equalweights = false the k-1 mixture proportions parameters must be added
+        npar = npar + (obj$k-1)
+    
+    if(obj$par$restr == "eigen")
+        nParam <- npar + 0.5 * p * (p-1) * obj$k + (p * obj$k - 1) * (1 - 1/obj$par$restr.fact) +1
+    else
+        nParam=   npar + 0.5 * p * (p-1) * obj$k  + (obj$k - 1) * (1 - 1/(obj$par$restr.fact^(1/p))) + 1 + obj$k * (p-1) * (1 - 1/obj$par$cshape)
+    
+    logh <- log(h)
+    if(obj$par$opt == "HARD")
+        CLACLA <- NlogL + nParam * logh
+    else {
+        MIXCLA <- NlogL + nParam * logh
+        MIXMIX <- NlogLmixt + nParam * logh
+    }
+
+    ##  cat("\nNlogL=", NlogL, " nParam=", nParam, " h=", h, " logh=", logh, "CLALA=", CLACLA, "\n")
+    
+    list(nParam=nParam, CLACLA=CLACLA, MIXMIX=MIXMIX, MIXCLA=MIXCLA)
+}

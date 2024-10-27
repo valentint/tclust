@@ -3,8 +3,11 @@
  *
  */
 
-//  Rcpp::compileAttributes("C:/users/valen/onedrive/myrepo/rrdev/robClus")
-//  Rcpp::compileAttributes("C:/projects/statproj/R/tclust")
+//  Rcpp::compileAttributes("C:/users/valen/onedrive/myrepo/r/tclust")
+
+// VT::27.10.2024 / suppress the RcppArmadillo warnings, particularly 
+//  chol() warning about non-symetric matrix
+#define ARMA_WARN_LEVEL 0
 
 // #include <RcppCommon.h>
 // #include <RcppArmadillo.h>
@@ -21,6 +24,7 @@ namespace Rcpp {
   template <> SEXP wrap(const iteration& iter) {
     return Rcpp::List::create(
       _["obj"] = iter.obj,
+      _["NlogL"] = iter.NlogL,
       _["cluster"] = iter.cluster,
       _["disttom"] = iter.disttom,
       _["size"] = iter.size,
@@ -64,6 +68,7 @@ Rcpp::List iter_to_list(iteration &iter)
       _["cluster"] = iter.cluster,
       _["disttom"] = iter.disttom,
       _["obj"] = iter.obj,
+      _["NlogL"] = iter.NlogL,
       _["size"] = iter.size,
       _["weights"] = iter.weights,
       _["code"] = iter.code,
@@ -83,86 +88,80 @@ Rcpp::List iter_to_list(iteration &iter)
 arma::mat restr2Eigenv(arma::mat autovalues, arma::vec ni_ini, double factor_e, double zero_tol)
 {
 
-  // Initializations
-  double c = factor_e;
-  arma::mat d = autovalues.t();
-  int p = autovalues.n_rows;
-  int k = autovalues.n_cols;
-  int n = arma::accu(ni_ini);
-  arma::mat nis(k, p); 
-  nis.each_col() = ni_ini;
-
-  //VT::20.01.2024: set any negative values in d to 0
-  arma::uvec idx = find(d < 0);
-  d.elem(idx).fill(0);
+    // Initializations
+    double c = factor_e;
+    arma::mat d = autovalues.t();
+    int p = autovalues.n_rows;
+    int k = autovalues.n_cols;
+    int n = arma::accu(ni_ini);
+    arma::mat nis(k, p); 
+    nis.each_col() = ni_ini;
+    
+    //VT::20.01.2024: set any negative values in d to 0
+    arma::uvec idx = find(d < 0);
+    d.elem(idx).fill(0);
   
-  // d_ is the ordered set of values in which the restriction objective function change the definition
-  // points in d_ correspond to the frontiers for the intervals in which this objective function has the same definition
-  // ed is a set with the middle points of these intervals
-  arma::vec d_ = arma::sort(arma::vectorise(arma::join_cols(d, d / c)));
-  int dim = d_.n_elem;
+    // d_ is the ordered set of values in which the restriction objective function change the definition
+    // points in d_ correspond to the frontiers for the intervals in which this objective function has the same definition
+    // ed is a set with the middle points of these intervals
+    arma::vec d_ = arma::sort(arma::vectorise(arma::join_cols(d, d / c)));
+    int dim = d_.n_elem;
+    
+    arma::vec d_1 = arma::join_cols(d_, arma::vec({d_.back() * 2}));
+    arma::vec d_2 = arma::join_cols(arma::vec({0}), d_);
+    arma::vec ed = (d_1 + d_2) / 2;
+    
+    dim++;
+    
+    // the only relevant eigenvalues are those belonging to a clusters with sample size greater than 0.
+    // eigenvalues corresponding to a clusters with 0 individuals has no influence in the objective function
+    // if all the eigenvalues are 0 during the smart initialization we assign to all the eigenvalues the value 1
+    if(arma::max(d.elem(arma::find(nis > 0))) <= zero_tol) {
+        return arma::mat(p, k, arma::fill::zeros); // solution corresponds to 0 matrix
+    }
+    
+    // we check if the eigenvalues verify the restrictions
+    if(std::abs(arma::max(d.elem(arma::find(nis > 0))) / arma::min(d.elem(arma::find(nis > 0)))) <= c) {
+        d.elem(arma::find(nis == 0)).fill(arma::mean(d.elem(arma::find(nis > 0))));
+        return d.t(); // the solution corresponds to the input because it verifies the constraints
+    }
+    
+    arma::mat t(k, dim);
+    arma::mat s(k, dim);
+    arma::mat r(k, dim);
+    
+    arma::vec sol(dim);
+    arma::vec sal(dim);
 
-  arma::vec d_1 = arma::join_cols(d_, arma::vec({d_.back() * 2}));
-  arma::vec d_2 = arma::join_cols(arma::vec({0}), d_);
-  arma::vec ed = (d_1 + d_2) / 2;
-
-  dim++;
-
-  // the only relevant eigenvalues are those belonging to a clusters with sample size greater than 0.
-  // eigenvalues corresponding to a clusters with 0 individuals has no influence in the objective function
-  // if all the eigenvalues are 0 during the smart initialization we assign to all the eigenvalues the value 1
-  if(arma::max(d.elem(arma::find(nis > 0))) <= zero_tol)
-  {
-    return arma::mat(p, k, arma::fill::zeros); // solution corresponds to 0 matrix
-  }
-
-  // we check if the eigenvalues verify the restrictions
-  if(std::abs(arma::max(d.elem(arma::find(nis > 0))) / arma::min(d.elem(arma::find(nis > 0)))) <= c)
-  {
-    d.elem(arma::find(nis == 0)).fill(arma::mean(d.elem(arma::find(nis > 0))));
-    return d.t(); // the solution corresponds to the input because it verifies the constraints
-  }
-
-  arma::mat t(k, dim);
-  arma::mat s(k, dim);
-  arma::mat r(k, dim);
-
-  arma::vec sol(dim);
-  arma::vec sal(dim);
-
-  for (int mp_ = 0; mp_ < dim; mp_++)
-  {
-    for (int i = 0; i < k; i++)
-    {
-      r(i, mp_) = arma::accu(d.row(i) < ed(mp_)) + arma::accu(d.row(i) > ed(mp_) * c);
-      s(i, mp_) = arma::accu(d.row(i) % (d.row(i) < ed(mp_)));
-      t(i, mp_) = arma::accu(d.row(i) % (d.row(i) > ed(mp_) * c));
+    for (int mp_ = 0; mp_ < dim; mp_++) {
+        for (int i = 0; i < k; i++) {
+            r(i, mp_) = arma::accu(d.row(i) < ed(mp_)) + arma::accu(d.row(i) > ed(mp_) * c);
+            s(i, mp_) = arma::accu(d.row(i) % (d.row(i) < ed(mp_)));
+            t(i, mp_) = arma::accu(d.row(i) % (d.row(i) > ed(mp_) * c));
+        }
+        
+        sol(mp_) = arma::accu(ni_ini / n % (s.col(mp_) + t.col(mp_) / c)) / (arma::accu(ni_ini / n % (r.col(mp_))));
+        
+        arma::mat sol_mp_matrix(k, p, arma::fill::value(sol(mp_)));
+        arma::mat c_sol_mp_matrix(k, p, arma::fill::value(c * sol(mp_)));
+        
+        arma::mat e = sol(mp_) * arma::conv_to<arma::mat>::from(d < sol(mp_)) +
+                      d % arma::conv_to<arma::mat>::from((d >= sol(mp_)) % (d <= c * sol(mp_))) +
+                      (c * sol(mp_)) * arma::conv_to<arma::mat>::from(d > c * sol(mp_));
+        
+        arma::mat o = -1.0 / 2.0 * nis / n % (arma::log(e) + d / e);
+        
+        sal(mp_) = arma::accu(o);
     }
 
-    sol(mp_) = arma::accu(ni_ini / n % (s.col(mp_) + t.col(mp_) / c)) / (arma::accu(ni_ini / n % (r.col(mp_))));
-
-    arma::mat sol_mp_matrix(k, p, arma::fill::value(sol(mp_)));
-    arma::mat c_sol_mp_matrix(k, p, arma::fill::value(c * sol(mp_)));
-
-    arma::mat e = sol(mp_) * arma::conv_to<arma::mat>::from(d < sol(mp_)) +
-                  d % arma::conv_to<arma::mat>::from((d >= sol(mp_)) % (d <= c * sol(mp_))) +
-                  (c * sol(mp_)) * arma::conv_to<arma::mat>::from(d > c * sol(mp_));
-
-    arma::mat o = -1.0 / 2.0 * nis / n % (arma::log(e) + d / e);
-
-    sal(mp_) = arma::accu(o);
-  }
-
-  // m is the optimum value for the eigenvalues procedure
-  int eo = sal.index_max();
-  double m = sol(eo);
-
-  // based on the m value we get the restricted eigenvalues
-  return (
-             m * arma::conv_to<arma::mat>::from(d < m) +
-             d % arma::conv_to<arma::mat>::from(d >= m) % arma::conv_to<arma::mat>::from(d <= c * m) +
-             (c * m) * arma::conv_to<arma::mat>::from(d > c * m))
-      .t();
+    // m is the optimum value for the eigenvalues procedure
+    int eo = sal.index_max();
+    double m = sol(eo);
+    
+    // based on the m value we get the restricted eigenvalues
+    return(m * arma::conv_to<arma::mat>::from(d < m) +
+           d % arma::conv_to<arma::mat>::from(d >= m) % arma::conv_to<arma::mat>::from(d <= c * m) +
+           (c * m) * arma::conv_to<arma::mat>::from(d > c * m)).t();
 }
 
 arma::mat HandleSmallEv(arma::mat autovalues, double zero_tol)
@@ -368,12 +367,9 @@ void fRestr(iteration &iter, params &pa) {
         // Reconstructing the cov matrices
         // d.print();
         for (int ki = 0; ki < pa.k; ki++) { 
-            // Rcout << ki << std::endl;
             iter.cov.slice(ki) = u.slice(ki) * arma::diagmat(d.col(ki)) * u.slice(ki).t();
         }
     }
- 
-    // Rcout << "Exiting fRestr ()" << std::endl;
 }
 
 /**
@@ -385,58 +381,54 @@ void fRestr(iteration &iter, params &pa) {
  */
 void initClusters(arma::mat x, iteration &iter, params &pa)
 {
-  arma::mat iter_center = arma::mat(pa.p, pa.k);        // Column ki stores the centers of cluster p
-  arma::cube iter_sigma = arma::cube(pa.p, pa.p, pa.k); // Covariance matrix of each cluster
-  arma::vec size;                                       // Cluster sizes
-  arma::vec weights;                                    // Cluster weigths
-
-  arma::ivec idx = arma::randi(pa.k * (pa.p + 1), arma::distr_param(0, pa.n - 1));
-
-  for (int ki = 0; ki < pa.k; ki++)
-  {
-    // Select the p+1 next elements of idx
-    arma::uvec rows_to_select = arma::conv_to<arma::uvec>::from(idx.rows(ki * (pa.p + 1), ki * (pa.p + 1) + pa.p));
-
-    // Set cluster centers to random observation
-    iter_center.col(ki) = x.row(rows_to_select(0)).t();
-
-    arma::mat X_ini = x.rows(rows_to_select);
-
-    // Calculate cov matrix of cluster k
-    iter_sigma.slice(ki) = pa.p / (float)(pa.p + 1) * arma::cov(X_ini);
-  }
-
-  iter.centers = iter_center.t();
-  iter.cov = iter_sigma;
-
-  if (pa.equal_weights)
-  {
-    size = arma::vec(pa.k, arma::fill::value(pa.no_trim / pa.k));
-    weights = arma::vec(pa.k, arma::fill::value(1 / (double)pa.k));
-  }
-  else
-  {
-    weights = runif(pa.k);
-    weights /= arma::accu(weights);
-    size = arma::round(pa.n * weights);
-  }
-
-  iter.size = size;
-  iter.weights = weights;
+    arma::mat iter_center = arma::mat(pa.p, pa.k);        // Column ki stores the centers of cluster p
+    arma::cube iter_sigma = arma::cube(pa.p, pa.p, pa.k); // Covariance matrix of each cluster
+    arma::vec size;                                       // Cluster sizes
+    arma::vec weights;                                    // Cluster weigths
+    
+    arma::ivec idx = arma::randi(pa.k * (pa.p + 1), arma::distr_param(0, pa.n - 1));
+    
+    for (int ki = 0; ki < pa.k; ki++) {
+        // Select the p+1 next elements of idx
+        arma::uvec rows_to_select = arma::conv_to<arma::uvec>::from(idx.rows(ki * (pa.p + 1), ki * (pa.p + 1) + pa.p));
+        
+        // Set cluster centers to random observation
+        iter_center.col(ki) = x.row(rows_to_select(0)).t();
+        
+        arma::mat X_ini = x.rows(rows_to_select);
+        
+        // Calculate cov matrix of cluster k
+        iter_sigma.slice(ki) = pa.p / (float)(pa.p + 1) * arma::cov(X_ini);
+    }
+    
+    iter.centers = iter_center.t();
+    iter.cov = iter_sigma;
+    
+    if (pa.equal_weights) {
+        size = arma::vec(pa.k, arma::fill::value(pa.no_trim / pa.k));
+        weights = arma::vec(pa.k, arma::fill::value(1 / (double)pa.k));
+    } else {
+        weights = runif(pa.k);
+        weights /= arma::accu(weights);
+        size = arma::round(pa.n * weights);
+    }
+    
+    iter.size = size;
+    iter.weights = weights;
 }
 
 /**
  * FUNCTIONS TO CALCULATE THE DENSITY OF A MULTIVARIATE NORMAL
  *
- * Taken from: Nino Hardt, Dicko Ahmadou, Benjamin Christoffersen. Faster Multivariate Normal densities with RcppArmadillo and OpenMP
- * https://gallery.rcpp.org/articles/dmvnorm_arma/
+ * Taken from: Nino Hardt, Dicko Ahmadou, Benjamin Christoffersen. 
+ *  Faster Multivariate Normal densities with RcppArmadillo and OpenMP
+ *  https://gallery.rcpp.org/articles/dmvnorm_arma/
  */
 
 static double const log2pi = std::log(2.0 * M_PI);
 
 /* C++ version of the dtrmv BLAS function */
-void inplace_tri_mat_mult(arma::rowvec &x, arma::mat const &trimat)
-{
+void inplace_tri_mat_mult(arma::rowvec &x, arma::mat const &trimat) {
   arma::uword const n = trimat.n_cols;
 
   for(unsigned j = n; j-- > 0;) {
@@ -447,27 +439,28 @@ void inplace_tri_mat_mult(arma::rowvec &x, arma::mat const &trimat)
   }
 }
 
-arma::vec dmvnrm_arma_fast(arma::mat const &x, arma::rowvec const &mean, arma::mat const &cov, bool const logd = false)
-{
-  using arma::uword;
-  uword const n = x.n_rows, xdim = x.n_cols;
-  arma::vec out(n);
-  arma::mat const rooti = arma::inv(trimatu(arma::chol(cov)));
-  double const rootisum = arma::sum(log(rooti.diag())),
+arma::vec dmvnrm_arma_fast(arma::mat const &x, arma::rowvec const &mean, arma::mat const &cov, 
+        bool const logd=false) {
+        
+    using arma::uword;
+    uword const n = x.n_rows, xdim = x.n_cols;
+    arma::vec out(n);
+    arma::mat const rooti = arma::inv(trimatu(arma::chol(cov)));
+    double const rootisum = arma::sum(log(rooti.diag())),
                constants = -(double)xdim / 2.0 * log2pi,
                other_terms = rootisum + constants;
-
-  arma::rowvec z;
-  for(uword i = 0; i < n; i++) {
-    z = (x.row(i) - mean);
-    inplace_tri_mat_mult(z, rooti);
-    out(i) = other_terms - 0.5 * arma::dot(z, z);
-  }
-
-  if(logd)
-    return out;
-  
-  return exp(out);
+    
+    arma::rowvec z;
+    for(uword i = 0; i < n; i++) {
+        z = (x.row(i) - mean);
+        inplace_tri_mat_mult(z, rooti);
+        out(i) = other_terms - 0.5 * arma::dot(z, z);
+    }
+    
+    if(logd)
+        return out;
+    
+    return exp(out);
 }
 
 /**
@@ -479,25 +472,31 @@ arma::vec dmvnrm_arma_fast(arma::mat const &x, arma::rowvec const &mean, arma::m
  */
 void calcObj(arma::mat x, iteration &iter, params &pa)
 {
-  int n = pa.n;
-  int k = pa.k;
-  Rcpp::String opt = pa.opt;
+    int n = pa.n;
+    int k = pa.k;
+    Rcpp::String opt = pa.opt;
 
-  arma::vec ww(n);
-  arma::vec w;
+    // VT::25.09.2024 - Compute always the classification log-likelihood and store NlogL
+    //  which will be used to compute the BIC CLACLA and MICCLA.
+    arma::vec ww(n);
+    arma::vec w;
+    arma::vec ww1(n);
+    arma::vec w1;
 
-  if(opt == "HARD") {
+    //  Rcout << "Entering calcObj()" << std::endl;
+
     for (int ki = 0; ki < k; ki++) {
-      w = iter.weights(ki) * dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki)) % arma::conv_to<arma::mat>::from(iter.cluster == ki + 1);
-      ww = w % (w >= 0) + ww; //	calculates each individual contribution for the obj funct hard
+        w = iter.weights(ki) * dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki));
+        ww = w % (w >= 0) + ww;                                     //	calculates each individual contribution for the obj funct mixture
+        w1 = w % arma::conv_to<arma::mat>::from(iter.cluster == ki + 1);
+        ww1 = w1 % (w1 >= 0) + ww1;                                 //	calculates each individual contribution for the obj funct hard
     }
-  } else {
-    for (int ki = 0; ki < k; ki++) {
-      w = iter.weights(ki) * dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki));
-      ww = w % (w >= 0) + ww; //	calculates each individual contribution for the obj funct mixture
-    }
-  }
-  iter.obj = arma::accu(arma::log(ww.elem(arma::find(iter.cluster > 0))));
+    iter.NlogL = -2 * arma::accu(arma::log(ww1.elem(arma::find(iter.cluster > 0))));
+
+    if(opt == "HARD") 
+        iter.obj = -1 * iter.NlogL / 2;
+    else
+        iter.obj = arma::accu(arma::log(ww.elem(arma::find(iter.cluster > 0))));
 }
 
 /**
@@ -539,13 +538,10 @@ void findClustAssig(arma::mat x, iteration &iter, params &pa)
     bool equal_weights = pa.equal_weights;
     Rcpp::String opt = pa.opt;
     
-    // Rcout << "Entering findClustAssig()" << std::endl;
+    //  Rcout << "Entering findClustAssig()" << std::endl;
     
     arma::mat ll(n, k);
-    for(int ki = 0; ki < k; ki++)   {
-        // Rcout << "ki=" << ki << "=================" << std::endl;
-        // iter.cov.slice(ki).print();
-        
+    for(int ki = 0; ki < k; ki++)   {        
         ll.col(ki) = iter.weights(ki) * dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki));
     }
 
@@ -597,7 +593,7 @@ void findClustAssig(arma::mat x, iteration &iter, params &pa)
     // Obtain the clusters size
     iter.size = (arma::sum(iter.posterior, 0)).t();
     
-    if (!equal_weights)
+    if(!equal_weights)
         iter.weights = iter.size/no_trim;
 
 }
@@ -629,7 +625,7 @@ void concentration_steps(int niter, arma::mat x, iteration &iter, params &pa)
       }
     }
 
-    // Estimate the cluster's assigment and TRIMMING (mixture models and HARD )
+    // Estimate the cluster's assigment and TRIMMING (mixture models and HARD)
     // Rcout << "Before findClustAssig():" << std::endl; 
     findClustAssig(x, iter, pa); 
     
@@ -719,6 +715,7 @@ iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
     iter.cov = arma::cube(p, p, k);
     iter.cluster = cluster;
     iter.obj = 0.0,
+    iter.NlogL = 0.0,
     iter.size = size;
     iter.weights = size / no_trim;
     iter.code = 0;
@@ -728,9 +725,10 @@ iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
     
     // VT::06.05.2024 - If niter2==0 (no iterations in the second step) tclust_c2 could
     //  break with "chol(): decomposition failed" - this happens if nkeep = nstart, i.e.
-    // call tclust_c2 on all tried solutions (nstart) and at leats one of the solutions
+    // call tclust_c2 on all tried solutions (nstart) and at least one of the solutions
     // has a class with one member which means that its covariance is the zero matrix.
     //  To solve this, we do an exctra call to frestr(), if niter2 == 0.
+
     if(niter2 == 0) {
         //  iter.cov.print("Before restriction");
         //  iter.size.print("Size");
@@ -794,6 +792,7 @@ Rcpp::List tclust_c1(arma::mat x, int k, double alpha = 0.05,
 
   iteration iter;
   iter.obj = 0.0,
+  iter.NlogL = 0.0,
   iter.cluster = arma::uvec(n);
   iter.size = arma::vec(k);
   iter.weights = arma::vec(k);
@@ -846,3 +845,4 @@ arma::mat tclust_HandleSmallEv(arma::mat autovalues, double zero_tol=1e-16) {
 arma::vec dmvnrm(arma::mat x, arma::rowvec mean, arma::mat cov) {
     return dmvnrm_arma_fast(x, mean, cov, false);
 }
+

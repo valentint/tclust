@@ -29,6 +29,8 @@ struct iteration
   arma::uvec cluster;   // Cluster assignation indices
   arma::vec disttom;    // Distances to cluster center
   double obj;           // Value of the objective function
+  double NlogL;         // Value of the the negative of the CLASSIFICATION LOG-LIKELIHOOD  of the untrimmed units
+                        // NlogL = -sum(max(ll(untrimmed units,[],2));
   arma::vec size;       // Cluster sizes
   arma::vec weights;    // Cluster weights
   int code;             // A return code signaling particular situations (e.g. data are aligned)

@@ -3,7 +3,7 @@
  *
  */
 
-//  Rcpp::compileAttributes("C:/users/valen/onedrive/myrepo/rrdev/robClus")
+//  Rcpp::compileAttributes("C:/users/valen/onedrive/myrepo/r/tclust")
 
 // #include <RcppCommon.h>
 // #include <RcppArmadillo.h>

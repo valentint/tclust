@@ -63,6 +63,7 @@ These curves show the values of the trimmed classification (log-)likelihoods
 
  #--- EXAMPLE 1 ------------------------------------------
 
+ \donttest{
  sig <- diag (2)
  cen <- rep (1, 2)
  x <- rbind(MASS::mvrnorm(108, cen * 0,   sig),
@@ -72,6 +73,8 @@ These curves show the values of the trimmed classification (log-)likelihoods
  (ctl <- ctlcurves(x, k = 1:4))
 
  plot(ctl)
+ }
+
 }
 \references{
 \enc{García}{Garcia}-Escudero, L.A.; Gordaliza, A.; \enc{Matrán}{Matran}, C. and Mayo-Iscar, A. (2011), 

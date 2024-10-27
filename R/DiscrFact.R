@@ -97,6 +97,8 @@ DiscrFact <- function(x, threshold=1/10)
     ret
   }
 
+#' @export
+
 print.DiscrFact <- function (x, ...) {
   cat ("Mean overall discriminant factor:", mean (x$assignfact), "\n")
   cat ("Mean discriminant factor per cluster:\n")

@@ -1,3 +1,24 @@
+2024-10-27  Valentin Todorov  <valentin.todorov@chello.at>
+    *
+	* DESCRIPTION (Version): 2.0-6
+    *
+    * src/tclust.cpp - fix the issue with warning in chol() - non-symetric matrix
+    *
+    *
+    
+2024-10-15  Valentin Todorov  <valentin.todorov@chello.at>
+    *
+	* DESCRIPTION (Version): 2.0-5
+    *
+    * R/tclust.R - added parameters to retruned object (n, p, NlogL, opt)
+    * data - LG5data.Rdata changed to .rda
+    * data - Error in the data set Wholesale customers dataset (wholesale) fixed
+    * data - Data set Flea-beetle measurements (flea) added
+    * R/tclust.R, src/tclust.cpp - implemented the information criteria 
+    *   CLACLA, MIXMIX and MIXCLA
+    * R/tclistIC - new function computing the ICs for different values of k and c
+    *
+    
 2024-05-04  Valentin Todorov  <valentin.todorov@chello.at>
     *
 	* DESCRIPTION (Version): 2.0-4
