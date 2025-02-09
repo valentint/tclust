@@ -51,6 +51,24 @@ set.seed(123)
 # Three clusters and 0% trimming level
 (clus <- tclust(swissbank, k = 3, alpha = 0.0, restr.fact = 110))
 
+
+#--- EXAMPLE 5 ------------------------------------------
+data (flea)
+# Three clusters and 8% trimming level
+set.seed(123)
+(clus <- tclust(flea[, 1:6], k = 3, alpha = 0.08, restr.fact = 50))
+##  adjustedRand(clus$cluster, as.integer(flea[,7]))
+
+# Three clusters and 0% trimming level
+set.seed(123)
+(clus <- tclust(flea[,1:6], k = 3, alpha = 0.0, restr.fact = 110))
+##  adjustedRand(clus$cluster, as.integer(flea[,7]))
+
+# Three clusters and 10% trimming level
+set.seed(123)
+(clus <- tclust(flea[,1:6], k = 3, alpha = 0.1, restr="deter", restr.fact = 110))
+##  adjustedRand(clus$cluster, as.integer(flea[,7]))
+
 ##### Discriminant Factor Analysis for tclust Objects ####################
 sig <- diag (2)
 cen <- rep (1, 2)

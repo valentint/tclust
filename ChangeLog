@@ -3,6 +3,7 @@
 	* DESCRIPTION (Version): 2.0-6
     *
     * src/tclust.cpp - fix the issue with warning in chol() - non-symetric matrix
+    * src/tclust.cpp - fix the issue with equal.weights has no effect
     *
     *
     

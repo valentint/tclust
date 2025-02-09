@@ -354,8 +354,8 @@ void fRestr(iteration &iter, params &pa) {
     if(!pa.deterC)
         d = restr2Eigenv(d, iter.size, pa.restr_fact, pa.zero_tol);
     else {
-        // iter.size.print("Autovalues size");
-        // d.print("Autovalues to be restricted");
+        //  iter.size.print("Autovalues size");
+        //  d.print("Autovalues to be restricted");
         d = restr2Deter(d, iter.size, pa.restr_fact, pa.cshape, pa.zero_tol);
     }
     
@@ -477,7 +477,7 @@ void calcObj(arma::mat x, iteration &iter, params &pa)
     Rcpp::String opt = pa.opt;
 
     // VT::25.09.2024 - Compute always the classification log-likelihood and store NlogL
-    //  which will be used to compute the BIC CLACLA and MICCLA.
+    //  which will be used to compute the BIC CLACLA and MIXCLA.
     arma::vec ww(n);
     arma::vec w;
     arma::vec ww1(n);
@@ -485,11 +485,16 @@ void calcObj(arma::mat x, iteration &iter, params &pa)
 
     //  Rcout << "Entering calcObj()" << std::endl;
 
-    for (int ki = 0; ki < k; ki++) {
+    for(int ki = 0; ki < k; ki++) {
         w = iter.weights(ki) * dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki));
-        ww = w % (w >= 0) + ww;                                     //	calculates each individual contribution for the obj funct mixture
+        
+        //	calculates each individual contribution for the obj funct mixture
+        ww = w % (w >= 0) + ww;
+        
         w1 = w % arma::conv_to<arma::mat>::from(iter.cluster == ki + 1);
-        ww1 = w1 % (w1 >= 0) + ww1;                                 //	calculates each individual contribution for the obj funct hard
+
+        //	calculates each individual contribution for the obj funct hard
+        ww1 = w1 % (w1 >= 0) + ww1;
     }
     iter.NlogL = -2 * arma::accu(arma::log(ww1.elem(arma::find(iter.cluster > 0))));
 
@@ -508,8 +513,8 @@ void calcObj(arma::mat x, iteration &iter, params &pa)
  */
 void estimClustPar(arma::mat x, iteration &iter, params &pa)
 {
-    for (int ki = 0; ki < pa.k; ki++) {
-        if (iter.size(ki) > pa.zero_tol) {
+    for(int ki = 0; ki < pa.k; ki++) {
+        if(iter.size(ki) > pa.zero_tol) {
             iter.centers.row(ki) = (iter.posterior.col(ki).t() * x) / iter.size(ki);
             // x centered
             arma::mat X_c = x;
@@ -554,15 +559,36 @@ void findClustAssig(arma::mat x, iteration &iter, params &pa)
     } else {
         pre_z = arma::sum(ll, 1);
     }
-    
+
+arma::uvec q3 = arma::find(pre_z < 1e-99);
+//if(q3.n_elem > n - no_trim) {
+//    Rcout << "Zero density: " << q3.n_elem  << std::endl; 
+//}        
     // Rcout << "Before trimming ..." << std::endl;
 
     // Determine elements to trim
     arma::uvec sorted_index = arma::sort_index(pre_z, "descending");
     arma::uvec last_indexes = arma::linspace<arma::uvec>(no_trim, n - 1, n - no_trim);
     arma::uvec obs_to_trim = sorted_index.elem(last_indexes);
+    pre_z.elem(obs_to_trim) = arma::vec(n-no_trim).fill(-1.0);
+    tc_set = pre_z != -1.0;
     pre_z.elem(obs_to_trim) = arma::zeros<arma::vec>(n - no_trim);
-    tc_set = pre_z > 0;
+
+arma::uvec q1 = arma::find(tc_set > 0);
+arma::uvec q2 = arma::find(pre_z == 0);
+int nout = n - q1.n_elem;
+
+//if(nout > 50) {
+//    Rcout << "To trim: " << nout << ", Length of last_indexes:" << last_indexes.n_elem << 
+//        ", " << obs_to_trim.n_elem << ", " << q2.n_elem << ", " << q3.n_elem << std::endl;
+
+//    for(int ki = 0; ki < k; ki++)   {  
+//    Rcout << "Cluster " << ki << ", weight=" << iter.weights(ki) << std::endl;      
+//        iter.centers.row(ki).print("Center");
+//        iter.cov.slice(ki).print("Cov");
+//    }
+
+//}
 
     // Cluster assignment with trimming
     // Rcout << "New cluster assignment ..." << std::endl;
@@ -595,7 +621,6 @@ void findClustAssig(arma::mat x, iteration &iter, params &pa)
     
     if(!equal_weights)
         iter.weights = iter.size/no_trim;
-
 }
 
 /**
@@ -609,38 +634,38 @@ void findClustAssig(arma::mat x, iteration &iter, params &pa)
 void concentration_steps(int niter, arma::mat x, iteration &iter, params &pa)
 {
 
-  for(int i1 = 0; i1 < niter; i1++) {
-    fRestr(iter, pa); // restricting the clusters' scatter structure (Changes the iter object)
-
-    // Rcout << "After frestr(): iter.code=" << iter.code << std::endl; 
-    
-    if(iter.code == 0)  {
-      if(i1 > 0) {
-        calcObj(x, iter, pa);
-        Rcpp::warning("Data not in general position");
-      } else {
-        arma::cube cov = arma::cube(pa.p, pa.p, pa.k);
-        cov.each_slice() = arma::eye(pa.p, pa.p);
-        iter.cov = cov;
-      }
+    for(int i1 = 0; i1 < niter; i1++) {
+        fRestr(iter, pa); // restricting the clusters' scatter structure (Changes the iter object)
+        
+        // Rcout << "After frestr(): iter.code=" << iter.code << std::endl; 
+        
+        if(iter.code == 0)  {
+            if(i1 > 0) {
+                calcObj(x, iter, pa);
+                Rcpp::warning("Data not in general position");
+            } else {
+                arma::cube cov = arma::cube(pa.p, pa.p, pa.k);
+                cov.each_slice() = arma::eye(pa.p, pa.p);
+                iter.cov = cov;
+            }
+        }
+        
+        // Estimate the cluster's assigment and TRIMMING (mixture models and HARD)
+        // Rcout << "Before findClustAssig():" << std::endl; 
+        findClustAssig(x, iter, pa); 
+        
+        // Rcout << "After findClustAssig(): iter.code=" << iter.code << ", i1=" << i1 << std::endl; 
+        if((int)iter.code == 2 || (i1 == niter - 1))
+            break;
+        
+        // Rcout << "Estimate Cluster Par:" << std::endl; 
+        estimClustPar(x, iter, pa); // estimates the cluster's parameters
     }
-
-    // Estimate the cluster's assigment and TRIMMING (mixture models and HARD)
-    // Rcout << "Before findClustAssig():" << std::endl; 
-    findClustAssig(x, iter, pa); 
     
-    // Rcout << "After findClustAssig(): iter.code=" << iter.code << ", i1=" << i1 << std::endl; 
-    if((int)iter.code == 2 || (i1 == niter - 1))
-      break;
-
-    // Rcout << "Estimate Cluster Par:" << std::endl; 
-    estimClustPar(x, iter, pa); // estimates the cluster's parameters
-  }
-  
-  calcObj(x, iter, pa); // calculates the objetive function value
+    calcObj(x, iter, pa); // calculates the objcetive function value
 }
 
-// Internal function for concentration steps (refinement) in tclust2
+// Internal function for concentration steps (refinement) in tclust()
 // @name tclust_c2
 // @param x Rcpp::NumericMatrix, The input data.
 // @param k The number of clusters initially searched for.
@@ -717,7 +742,13 @@ iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
     iter.obj = 0.0,
     iter.NlogL = 0.0,
     iter.size = size;
-    iter.weights = size / no_trim;
+    
+    // VT::29.10.2024 - the results with or without equal_weights were identical
+    //  because the condition 'if(!equal_weights)' was missing
+    iter.weights = arma::ones<arma::vec>(size.n_elem) / no_trim;
+    if(!equal_weights)
+        iter.weights = size / no_trim;
+        
     iter.code = 0;
     iter.posterior = posterior;
     
@@ -730,12 +761,7 @@ iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
     //  To solve this, we do an exctra call to frestr(), if niter2 == 0.
 
     if(niter2 == 0) {
-        //  iter.cov.print("Before restriction");
-        //  iter.size.print("Size");
-        
         fRestr(iter, pa); 
-    
-        //  iter.cov.print("After restriction");
     }
     
     concentration_steps(niter2, x, iter, pa);
@@ -743,7 +769,7 @@ iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
     return iter;
 }
 
-// Internal function for concentration steps (initializations) in tclust2
+// Internal function for concentration steps (initializations) in tclust()
 // @name tclust_c1
 // @param x Rcpp::NumericMatrix, The input data.
 // @param k The number of clusters initially searched for.
@@ -804,17 +830,6 @@ Rcpp::List tclust_c1(arma::mat x, int k, double alpha = 0.05,
   initClusters(x, iter, pa);                // Cluster random initialization
   concentration_steps(niter1, x, iter, pa); // Apply niter1 concentration steps
 
-/*
-  iteration iter1;
-  Rcout << "Before tclust_c2():" << std::endl; 
-  iter1 = tclust_c2(x, k, iter.cluster, alpha,
-                     restrC, deterC, restr_fact, cshape,
-                     0, opt, equal_weights, zero_tol);
-  Rcout << "After tclust_c2():" << std::endl; 
-  iter.centers.print("C1");
-  iter1.centers.print("C2");
-*/
-  
   return Rcpp::List::create(
       _["obj"] = iter.obj,
       _["cluster"] = iter.cluster);
