@@ -16,7 +16,7 @@ importFrom("parallel", "detectCores", "makeCluster", "stopCluster")
 import("foreach", "foreach")
 import(doParallel)
 
-importFrom("ellipsis", "check_dots_used")
+importFrom("rlang", "check_dots_used")
 
 export(
     simula.rlg,
