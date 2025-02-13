@@ -7,3 +7,5 @@
 ^docs$
 
 [.]png$
+^tclust\.Rproj$
+^\.Rproj\.user$

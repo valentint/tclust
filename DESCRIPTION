@@ -16,7 +16,7 @@ Description: Provides functions for robust trimmed clustering. The methods are
     Fritz et al. (2012) <doi:10.18637/jss.v047.i12>, 
     Garcia-Escudero et al. (2011)  <doi:10.1007/s11222-010-9194-z> and others.
 Depends: R(>= 3.6.2)
-Imports: Rcpp (>= 1.0.7), doParallel, parallel, foreach, MASS, ellipsis
+Imports: Rcpp (>= 1.0.7), doParallel, parallel, foreach, MASS, rlang
 Suggests: mclust, cluster, sn
 LazyLoad: yes
 License: GPL-3

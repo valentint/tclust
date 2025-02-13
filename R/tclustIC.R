@@ -115,14 +115,14 @@
 tclustIC <- function(x, kk=1:5, cc=c(1, 2, 4, 8, 16, 32, 64, 128), alpha=0.05, 
     whichIC=c("ALL", "MIXMIX", "MIXCLA", "CLACLA"), parallel=FALSE, n.cores=-1, trace=FALSE, ...) {
 
-    ## Check the ellipsis ...
+    ## Check the dots ...
     args <- list(...)
     if("opt" %in% names(args))
         stop("Argument 'opt' cannot be used with tclustIC()!")
     if("restr.fact" %in% names(args))
         stop("Argument 'restr.fact' cannot be used with tclustIC()!")
     
-    ellipsis::check_dots_used()
+    rlang::check_dots_used()
     
     whichIC <- match.arg(whichIC)
     if(trace) {
