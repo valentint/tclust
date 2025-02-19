@@ -75,6 +75,32 @@ Rcpp::List iter_to_list(iteration &iter)
       _["posterior"] = iter.posterior);
 }
 
+// Internal function to perform the E-step for a Gaussian mixture distribution
+//  see the documentation of estepRR() below.
+//
+double estepXX(const arma::mat& ll, arma::mat& postprob, arma::vec& logpdf) {
+
+    // Maximum log-likelihood along rows
+    arma::vec maxll = arma::max(ll, 1);
+
+    // Subtract maxll from each row to avoid underflow
+    arma::mat post = arma::exp(ll.each_col() - maxll);
+
+    // Compute density: row-wise sum of exponentiated values
+    arma::vec density = arma::sum(post, 1);
+
+    // Posterior probabilities: normalize each row
+    postprob = post.each_col() / density;
+
+    // Log PDF for each observation
+    logpdf = arma::log(density) + maxll;
+
+    // Compute objective (total log-likelihood)
+    double obj = arma::sum(logpdf);
+
+    return obj;
+}
+
 /**
  * Apply restrictions to eigenvalues.
  *
@@ -478,6 +504,9 @@ void calcObj(arma::mat x, iteration &iter, params &pa)
 
     // VT::25.09.2024 - Compute always the classification log-likelihood and store NlogL
     //  which will be used to compute the BIC CLACLA and MIXCLA.
+
+    // VT::11.02.2025 - use the logs of the likelihood
+/*    
     arma::vec ww(n);
     arma::vec w;
     arma::vec ww1(n);
@@ -488,12 +517,12 @@ void calcObj(arma::mat x, iteration &iter, params &pa)
     for(int ki = 0; ki < k; ki++) {
         w = iter.weights(ki) * dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki));
         
-        //	calculates each individual contribution for the obj funct mixture
+        //	calculates each individual contribution for the obj function mixture
         ww = w % (w >= 0) + ww;
         
         w1 = w % arma::conv_to<arma::mat>::from(iter.cluster == ki + 1);
 
-        //	calculates each individual contribution for the obj funct hard
+        //	calculates each individual contribution for the obj function hard
         ww1 = w1 % (w1 >= 0) + ww1;
     }
     iter.NlogL = -2 * arma::accu(arma::log(ww1.elem(arma::find(iter.cluster > 0))));
@@ -502,6 +531,28 @@ void calcObj(arma::mat x, iteration &iter, params &pa)
         iter.obj = -1 * iter.NlogL / 2;
     else
         iter.obj = arma::accu(arma::log(ww.elem(arma::find(iter.cluster > 0))));
+*/        
+        
+    arma::vec wx2(n);
+    arma::mat ll(n, k);
+    for(int ki = 0; ki < k; ki++)   {  
+        ll.col(ki) = log(iter.weights(ki)) + dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki), true);
+            
+        if(iter.size(ki) > pa.zero_tol) {
+
+            //	calculates each individual contribution for the obj function hard
+            wx2 += ll.col(ki) % arma::conv_to<arma::mat>::from(iter.cluster == ki+1);
+       }
+    }
+    iter.NlogL = -2 * arma::accu(wx2.elem(arma::find(iter.cluster > 0)));
+    
+    if(opt == "HARD") 
+        iter.obj = -1 * iter.NlogL / 2;
+    else {
+        arma::mat postprob;
+        arma::vec logpdf;
+        iter.obj = estepXX(ll, postprob, logpdf);
+    }
 }
 
 /**
@@ -547,57 +598,48 @@ void findClustAssig(arma::mat x, iteration &iter, params &pa)
     
     arma::mat ll(n, k);
     for(int ki = 0; ki < k; ki++)   {        
-        ll.col(ki) = iter.weights(ki) * dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki));
+        
+        // VT::11.02.2025 - use the logs of the likelihood
+        // ll.col(ki) = iter.weights(ki) + dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki), false);
+        ll.col(ki) = log(iter.weights(ki)) + dmvnrm_arma_fast(x, iter.centers.row(ki), iter.cov.slice(ki), true);
     }
 
     arma::uvec old_assig = iter.cluster;
     arma::vec pre_z;
     arma::uvec tc_set;
+    arma::mat postprob;
+    arma::vec logpdf;
+    estepXX(ll, postprob, logpdf);
     
     if (opt == "HARD") {
         pre_z = arma::max(ll, 1);
     } else {
-        pre_z = arma::sum(ll, 1);
+        //  pre_z = arma::sum(ll, 1);
+        pre_z = logpdf;
     }
-
-arma::uvec q3 = arma::find(pre_z < 1e-99);
-//if(q3.n_elem > n - no_trim) {
-//    Rcout << "Zero density: " << q3.n_elem  << std::endl; 
-//}        
+    
     // Rcout << "Before trimming ..." << std::endl;
 
     // Determine elements to trim
     arma::uvec sorted_index = arma::sort_index(pre_z, "descending");
     arma::uvec last_indexes = arma::linspace<arma::uvec>(no_trim, n - 1, n - no_trim);
     arma::uvec obs_to_trim = sorted_index.elem(last_indexes);
-    pre_z.elem(obs_to_trim) = arma::vec(n-no_trim).fill(-1.0);
-    tc_set = pre_z != -1.0;
-    pre_z.elem(obs_to_trim) = arma::zeros<arma::vec>(n - no_trim);
-
-arma::uvec q1 = arma::find(tc_set > 0);
-arma::uvec q2 = arma::find(pre_z == 0);
-int nout = n - q1.n_elem;
-
-//if(nout > 50) {
-//    Rcout << "To trim: " << nout << ", Length of last_indexes:" << last_indexes.n_elem << 
-//        ", " << obs_to_trim.n_elem << ", " << q2.n_elem << ", " << q3.n_elem << std::endl;
-
-//    for(int ki = 0; ki < k; ki++)   {  
-//    Rcout << "Cluster " << ki << ", weight=" << iter.weights(ki) << std::endl;      
-//        iter.centers.row(ki).print("Center");
-//        iter.cov.slice(ki).print("Cov");
-//    }
-
-//}
+    arma::uvec ind = (arma::index_max(ll, 1) + 1);
+    ind.elem(obs_to_trim) = arma::zeros<arma::uvec>(n - no_trim);
+    tc_set = ind != 0;
 
     // Cluster assignment with trimming
     // Rcout << "New cluster assignment ..." << std::endl;
     iter.cluster = (arma::index_max(ll, 1) + 1) % tc_set;
 
-    // Find assignation matrix posterior
+    // Calculate posterior matrix
     if(opt == "MIXT") {
-        iter.posterior = ll;
-        iter.posterior.each_col() /= (pre_z + (pre_z == 0));
+        //VT::11.02.2025 - use the logs of the likelihood
+        //  iter.posterior = ll;
+        //  iter.posterior.each_col() /= (pre_z + (pre_z == 0));
+
+        iter.posterior = postprob;
+
     } else {
     
         arma::uvec one_to_n = arma::linspace<arma::uvec>(0, n - 1, n);
@@ -605,7 +647,6 @@ int nout = n - q1.n_elem;
         
         // 2xn matrix containing (observation, cluster) pairs in each column
         arma::umat subscripts = (arma::join_rows(one_to_n, aux_assig)).t();
-        
         iter.posterior = arma::mat(n, k);
         iter.posterior.elem(arma::sub2ind(arma::size(iter.posterior), subscripts)) = arma::ones<arma::vec>(n);
     }
@@ -621,6 +662,7 @@ int nout = n - q1.n_elem;
     
     if(!equal_weights)
         iter.weights = iter.size/no_trim;
+
 }
 
 /**
@@ -859,5 +901,93 @@ arma::mat tclust_HandleSmallEv(arma::mat autovalues, double zero_tol=1e-16) {
 // [[Rcpp::export]]
 arma::vec dmvnrm(arma::mat x, arma::rowvec mean, arma::mat cov) {
     return dmvnrm_arma_fast(x, mean, cov, false);
+}
+
+//' Function to perform the E-step for a Gaussian mixture distribution
+//' @name estepRR
+//' @description Compute the log PDF for each observation, the posterior probabilities
+//'     and the objective function (total log-likelihood) for a Gaussian 
+//'     mixture distribution
+//' @param ll Rcpp::NumericMatrix, n-by-k where \code{n} is the number of 
+//'  observations and \code{k} is the number of clusters.
+//' @return The function returns a list with the following elements:
+//' \itemize{
+//'    \item obj The value of the objective function (total log-likelihood)
+//'    \item postprob an \code{n-by-k} matrix with the posterior probablilities
+//'    \item logpdf a vector of length \code{n} containing the log PDF for 
+//'         each observation
+//' }
+//' @details Formally a mixture model corresponds to the mixture distribution that
+//'   represents the probability distribution of observations in the overall
+//'   population. Mixture models are used
+//'   to make statistical inferences about the properties of the
+//'   sub-populations given only observations on the pooled population, without
+//'   sub-population-identity information.
+//'   Mixture modeling approaches assume that data at hand $\eqn{y_1, ..., y_n} in
+//'   \eqn{R^p} come from a probability distribution with density given by the sum of k components
+//'   \deqn{\sum_{j=1}^k  \pi_j \phi( \cdot, \theta_j)}
+//'   with \eqn{\phi( \cdot, \theta_j)} being the
+//'   \eqn{p}-variate  (generally multivariate normal) densities with parameters
+//'   \eqn{\theta_j}, \eqn{j=1, \ldots, k}. Generally \eqn{\theta_j= (\mu_j, \Sigma_j)}
+//'   where \eqn{\mu_j} is the population mean  and   \eqn{\Sigma_j} is the covariance
+//'   matrix for component \eqn{j}.
+//'   \eqn{\pi_j} is the (prior) probability of component \eqn{j}.
+//'   The objective function is obj is equal to
+//'    \deqn{ obj = \log   \left( \prod_{i=1}^n  \sum_{j=1}^k \pi_j \phi (y_i; \; \theta_j)    \right) 
+//'     }
+//'
+//'    or
+//'  
+//'     \deqn{ obj =  \sum_{i=1}^n  \log   \left( \sum_{j=1}^k \pi_j \phi (y_i; \; \theta_j)    \right)
+//'     }
+//'     where \eqn{k} is the number of components of the mixture and \eqn{\pi_j} are the 
+//'     component probabilitites and \eqn{\theta_j} are the  parameters of the \eqn{j}-th 
+//'     mixture component.
+//'
+//'
+//' @references
+//'
+//'   McLachlan, G.J.; Peel, D. (2000). Finite Mixture Models. Wiley. ISBN 0-471-00626-2
+//'
+//' @examples
+//'##      Generate two Gaussian normal distributions
+//'##      and do not produce plots
+//'
+//'        mu1 = c(1,2)
+//'        sigma1 = matrix(c(2, 0, 0, .5), nrow=2, byrow=TRUE)    #[2 0; 0 .5];
+//'        mu2 = c(-3, -5)
+//'        sigma2 = matrix(c(1, 0, 0, 1), nrow=2, byrow=TRUE)
+//'        n1 = 100
+//'        n2 = 200
+//'        Y = rbind(MASS::mvrnorm(n1, mu1, sigma1), 
+//'                  MASS::mvrnorm(n2, mu2, sigma2))
+//'        k = 2
+//'        pi = c(1/3, 2/3)
+//'        mu = rbind(mu1, mu2)
+//'        sigma = array(0, dim=c(2,2,2))
+//'        sigma[,,1] = sigma1
+//'        sigma[,,2] = sigma2
+//'        
+//'        ll = matrix(0, nrow=n1+n2, ncol=2)
+//'        for(j in 1:k)
+//'            ll[,j] = log(pi[j]) +  tclust:::dmvnrm(Y, mu[j,], sigma[,,j])
+//'
+//'        dd = tclust:::estepRR(ll)
+//'        dd$obj
+//'        dd$logpdf
+//'        dd$postprob
+        
+// [[Rcpp::export]]
+Rcpp::List estepRR(const arma::mat& ll) {
+
+    arma::mat postprob;
+    arma::vec logpdf;
+    
+    double obj = estepXX(ll, postprob, logpdf);
+
+    return Rcpp::List::create(
+        Rcpp::Named("obj") = obj,
+        Rcpp::Named("postprob") = postprob,
+        Rcpp::Named("logpdf") = logpdf);
 }
 

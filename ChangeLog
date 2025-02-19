@@ -1,10 +1,16 @@
-2024-10-27  Valentin Todorov  <valentin.todorov@chello.at>
+2025-02-19  Valentin Todorov  <valentin.todorov@chello.at>
     *
-	* DESCRIPTION (Version): 2.0-6
+	* DESCRIPTION (Version): 2.1-0
     *
     * src/tclust.cpp - fix the issue with warning in chol() - non-symetric matrix
     * src/tclust.cpp - fix the issue with equal.weights has no effect
-    *
+    * src/tclust.cpp - fix underflow: replace likelihood by loglikelihood
+    * DESCRIPTION, NAMESPACE, R/tclistIC.R - replace import from 
+    *   ellipsis (check_dots_used) by import from rlang (thanks to olivroy)
+    * R/randIndex - added function computing Rand-type indexes
+    * R\tclust.R - equal.weights must be FALSE if mixture model approach is 
+    *   assumed (opt='MIXT')
+    * R/print.tclust.R - information on likelihood method and restriction included
     *
     
 2024-10-15  Valentin Todorov  <valentin.todorov@chello.at>

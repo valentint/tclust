@@ -43,7 +43,8 @@ export(
     tkmeans,
     print.tkmeans,
     plot.tkmeans,
-    tclustIC
+    tclustIC,
+    randIndex
 )
 
 #   S3method (print, rlg)

@@ -289,6 +289,11 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
         niter1 <- iter.max
     }
         
+    if(equal.weights && opt == "MIXT") {
+        warning("The parameter 'equalweights' cannot be TRUE if mixture model approach is assumed (opt='MIXT')")
+        equal.weights <- FALSE
+    }
+
 	parlist <- list(k=k, alpha=alpha, nstart=nstart, niter1=niter1, niter2=niter2, nkeep=nkeep, 
         restr=restr, restr.C=restrC, deter.C=deterC, restr.fact=restr.fact, cshape=cshape, opt=opt,
         equal.weights=equal.weights, center=center, scale=scale,

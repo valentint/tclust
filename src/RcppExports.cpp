@@ -152,6 +152,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// estepRR
+Rcpp::List estepRR(const arma::mat& ll);
+RcppExport SEXP _tclust_estepRR(SEXP llSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type ll(llSEXP);
+    rcpp_result_gen = Rcpp::wrap(estepRR(ll));
+    return rcpp_result_gen;
+END_RCPP
+}
 // tkmeans_c1
 Rcpp::List tkmeans_c1(arma::mat x, int k, double alpha, int niter1, double zero_tol, Rcpp::Nullable<Rcpp::NumericMatrix> points);
 RcppExport SEXP _tclust_tkmeans_c1(SEXP xSEXP, SEXP kSEXP, SEXP alphaSEXP, SEXP niter1SEXP, SEXP zero_tolSEXP, SEXP pointsSEXP) {
@@ -195,6 +206,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_tclust_tclust_restr2_deter", (DL_FUNC) &_tclust_tclust_restr2_deter, 5},
     {"_tclust_tclust_HandleSmallEv", (DL_FUNC) &_tclust_tclust_HandleSmallEv, 2},
     {"_tclust_dmvnrm", (DL_FUNC) &_tclust_dmvnrm, 3},
+    {"_tclust_estepRR", (DL_FUNC) &_tclust_estepRR, 1},
     {"_tclust_tkmeans_c1", (DL_FUNC) &_tclust_tkmeans_c1, 6},
     {"_tclust_tkmeans_c2", (DL_FUNC) &_tclust_tkmeans_c2, 6},
     {NULL, NULL, 0}

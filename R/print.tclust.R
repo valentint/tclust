@@ -4,7 +4,8 @@
 print.tclust <- function (x, ...)
 {
   cat ("* Results for TCLUST algorithm: *\n")
-  cat ("trim = ", x$par$alpha, ", k = ", x$k, "\n", sep = "")
+  cat ("opt=", x$par$opt, ", trim = ", x$par$alpha, ", k = ", x$k, 
+    "\nRestriction on: ", ifelse(x$par$restr=="eigen", "eigenvalues", "determinants"), "\n\n", sep = "")
 
   cat ("Classification (trimmed points are indicated by 0", "):\n")
 
