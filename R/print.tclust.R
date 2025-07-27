@@ -40,10 +40,11 @@ print.tkmeans <- function (x, ...) {
     warning ("The solution is not reliable. More iterations are probably needed.")
   cat ("\nTrimmed objective function: ", x$obj, "\n")
 
-  if (!is.null (x$restr.fact))
-    cat ("Selected restriction factor:", x$restr.fact, "\n")
+  ##    if (!is.null (x$restr.fact))
+  ##      cat ("Selected restriction factor:", x$restr.fact, "\n")
   
-  cat (round (x$int$iter.converged / x$int$iter.successful* 100), "% of iterations converged successfully.\n", sep= "")
+  ##    cat (round (x$int$iter.converged / x$int$iter.successful* 100), 
+  ##          "% of iterations converged successfully.\n", sep= "")
 
   invisible(x)
 }

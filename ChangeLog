@@ -1,3 +1,17 @@
+2025-07-10  Valentin Todorov  <valentin@todorov.at>
+    *
+	* DESCRIPTION (Version): 2.2-0
+    *
+    
+2025-06-29  Valentin Todorov  <valentin@todorov.at>
+    *
+	* DESCRIPTION (Version): 2.1-2
+	* DESCRIPTION (Version): 2.1-1
+    *
+    * test/ttest.* - fix an issue with tests
+    * DESCRIPTION: change maintainer email
+    *
+
 2025-02-19  Valentin Todorov  <valentin.todorov@chello.at>
     *
 	* DESCRIPTION (Version): 2.1-0

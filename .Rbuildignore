@@ -9,3 +9,4 @@
 [.]png$
 ^tclust\.Rproj$
 ^\.Rproj\.user$
+^codecov\.yml$

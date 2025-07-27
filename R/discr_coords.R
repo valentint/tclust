@@ -1,7 +1,7 @@
 discr_coords <- function (x, equal.weights)
 {
     if (is.null (x$par$x))
-        stop("Dataset not included in tclust2 object - cannot calculate discriminant coordinates.")
+        stop("Dataset not included in tclust object - cannot calculate discriminant coordinates.")
     
     if (missing(equal.weights))
         equal.weights <- x$par$equal.weights

@@ -2,15 +2,15 @@ Package: tclust
 Type: Package
 Encoding: UTF-8
 Title: Robust Trimmed Clustering
-Version: 2.1-0
-VersionNote: Released 2.0-5 on 2024-10-15 on CRAN
-Authors@R: c(person("Valentin", "Todorov", role = c("aut", "cre"), email = "valentin.todorov@chello.at", comment=c(ORCID = "0000-0003-4215-0245"))
+Version: 2.2-0
+VersionNote: Released 2.1-2 on 2025-06-29 on CRAN
+Authors@R: c(person("Valentin", "Todorov", role = c("aut", "cre"), email = "valentin@todorov.at", comment=c(ORCID = "0000-0003-4215-0245"))
          , person("Luis Angel", "García Escudero", role = "aut")
          , person("Agustín", "Mayo Iscar", role = "aut")
          , person("Javier", "Crespo Guerrero", role = "aut")
          , person("Heinrich", "Fritz", role = "aut")
          )
-Maintainer: Valentin Todorov <valentin.todorov@chello.at>
+Maintainer: Valentin Todorov <valentin@todorov.at>
 Description: Provides functions for robust trimmed clustering. The methods are 
     described in Garcia-Escudero (2008) <doi:10.1214/07-AOS515>, 
     Fritz et al. (2012) <doi:10.18637/jss.v047.i12>, 

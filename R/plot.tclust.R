@@ -78,8 +78,7 @@
 #'
 
 plot.tclust <-
-function (x,  ...)
-{
+function (x,  ...) {
   if (x$int$dim[2] == 1)
     .plot.tclust.1d (x, ...)
   else if (x$int$dim[2] == 2)
@@ -182,9 +181,7 @@ function (x, xlab, ylab, xlim, ylim, tol = 0.95, tol.lwd = 1, tol.lty = 3, tol.c
 #######################
 
 .plot.tclust.2d <-
-function (x, xlab, ylab, tol = 0.95, tol.lwd = 1, tol.lty = 3, tol.col = 1,
-          ...)
-{
+function (x, xlab, ylab, tol = 0.95, tol.lwd = 1, tol.lty = 3, tol.col = 1, ...) {
   if (nrow (x$centers) != 2)
     stop ("tclust object of dimension 2 expected.")
 
@@ -192,15 +189,13 @@ function (x, xlab, ylab, tol = 0.95, tol.lwd = 1, tol.lty = 3, tol.col = 1,
     stop ("dataset not included in tclust object - cannot plot object.")
 
   dn <- dimnames (x$par$x)
-  if (is.list (dn) && length (dn[[2]]) == 2)
-  {
+  if(is.list (dn) && length (dn[[2]]) == 2) {
     if (missing (xlab))
       xlab = dn[[2]][1]
     if (missing (ylab))
       ylab = dn[[2]][2]
   }
-  else
-  {
+  else {
     if (missing (xlab))
       xlab = "x1"
     if (missing (ylab))
@@ -252,8 +247,7 @@ function (x, X, labels = c ("none", "cluster", "observation"), text,
           xlab, ylab, col, pch, by.cluster = TRUE, axes = 3, xlim, ylim, ...)
 {
 
-  if (by.cluster)
-  {
+  if(by.cluster) {
     maxassig <- max (x$cluster)
     
     if (missing (col))
@@ -268,8 +262,7 @@ function (x, X, labels = c ("none", "cluster", "observation"), text,
     col <- col[x$cluster + 1]    
     pch <- pch[x$cluster + 1]
   }
-  else
-  {
+  else {
     if (missing (col))
       col <- x$cluster + 1
     if (missing (pch))
@@ -280,8 +273,7 @@ function (x, X, labels = c ("none", "cluster", "observation"), text,
 
   if (!missing (text))
     text <- rep (text, len = n)
-  else if (!missing (labels))
-  {
+  else if (!missing (labels))    {
     labels <- match.arg(labels)
     if (labels == "cluster")
       text = paste (x$cluster)
@@ -319,14 +311,12 @@ function (x, X, labels = c ("none", "cluster", "observation"), text,
 ##  .plot.tclust.title  ##
 ##########################
 
-.plot.tclust.title <- function (x, main, main.pre, sub, sub1, ...)
-{
+.plot.tclust.title <- function (x, main, main.pre, sub, sub1, ...) {
   sub.par <- TRUE
   sub.restr <- FALSE
 
   sub.ovr <- missing (sub)
-  if (!missing (sub) && is.character (sub))
-  {
+  if (!missing (sub) && is.character (sub))   {
     sub.ovr <- TRUE
     if (sub == "/p")
       sub.par <- !(sub.restr <- FALSE)

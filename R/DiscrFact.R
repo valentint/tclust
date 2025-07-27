@@ -42,7 +42,7 @@
 DiscrFact <- function(x, threshold=1/10)
 {
     if (!any (class (x) == "tclust"))
-      stop ("parameter x: expected object of type \x22tclust2\x22")
+      stop ("parameter x: expected object of type \x22tclust\x22")
 
     p <- x$int$dim[2]
     alpha <- x$par$alpha

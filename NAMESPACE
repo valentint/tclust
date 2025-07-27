@@ -44,7 +44,9 @@ export(
     print.tkmeans,
     plot.tkmeans,
     tclustIC,
-    randIndex
+    tclustICsol,
+    randIndex,
+    FowlkesMallowsIndex
 )
 
 #   S3method (print, rlg)
