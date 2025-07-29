@@ -21,3 +21,128 @@ x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
 # Three groups (one of them very scattered) and 0% trimming level
 (clus <- tclust(x, k = 3, alpha=0.0, restr.fact = 100))
 
+
+#--- EXAMPLE 2 ------------------------------------------
+data(geyser2)
+set.seed(123)
+(clus <- tclust(geyser2, k=3, alpha=0.03))
+plot(clus)
+ 
+#--- EXAMPLE 3 ------------------------------------------
+data (M5data)
+set.seed(123)
+x <- M5data[, 1:2]
+
+(clus.a <- tclust(x, k=3, alpha=0.1, restr.fact=1,
+                  restr = "eigen", equal.weights=TRUE))
+(clus.b <- tclust(x, k=3, alpha=0.1, restr.fact=50,
+                    restr="eigen", equal.weights=TRUE))
+(clus.c <- tclust(x, k=3, alpha=0.1, restr.fact=1,
+                    restr="deter", equal.weights=TRUE))
+(clus.d <- tclust(x, k=3, alpha=0.1, restr.fact=50,
+                    restr="eigen", equal.weights=FALSE))
+
+#--- EXAMPLE 4 ------------------------------------------
+data (swissbank)
+set.seed(123)
+# Two clusters and 8% trimming level
+(clus <- tclust(swissbank, k = 2, alpha = 0.08, restr.fact = 50))
+
+# Three clusters and 0% trimming level
+(clus <- tclust(swissbank, k = 3, alpha = 0.0, restr.fact = 110))
+
+
+#--- EXAMPLE 5 ------------------------------------------
+data (flea)
+# Three clusters and 8% trimming level
+set.seed(123)
+(clus <- tclust(flea[, 1:6], k = 3, alpha = 0.08, restr.fact = 50))
+##  adjustedRand(clus$cluster, as.integer(flea[,7]))
+
+# Three clusters and 0% trimming level
+set.seed(123)
+(clus <- tclust(flea[,1:6], k = 3, alpha = 0.0, restr.fact = 110))
+##  adjustedRand(clus$cluster, as.integer(flea[,7]))
+
+# Three clusters and 10% trimming level
+set.seed(123)
+(clus <- tclust(flea[,1:6], k = 3, alpha = 0.1, restr="deter", restr.fact = 110))
+##  adjustedRand(clus$cluster, as.integer(flea[,7]))
+
+##### Discriminant Factor Analysis for tclust Objects ####################
+sig <- diag (2)
+cen <- rep (1, 2)
+x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
+	       MASS::mvrnorm(540, cen * 5,   sig * 6 - 2),
+	       MASS::mvrnorm(100, cen * 2.5, sig * 50)
+)
+(clus.1 <- tclust(x, k = 2, alpha = 0.1, restr.fact = 12))
+
+(clus.2 <- tclust(x, k = 3, alpha = 0.1, restr.fact = 1))
+  ##  restr.fact and k are chosen improperly for pointing out the
+  ##    difference in the plot of DiscrFact
+
+(dsc.1 <- DiscrFact(clus.1))
+(dsc.2 <- DiscrFact(clus.2))
+
+
+########## Classification Trimmed Likelihood Curves  ################### 
+
+## Do not run - it takes too long and can show differences on some
+##  architectures due to the random numbers.
+##
+#--- EXAMPLE 1 ------------------------------------------
+
+if(FALSE) {
+    sig <- diag (2)
+    cen <- rep (1, 2)
+    x <- rbind(MASS::mvrnorm(108, cen * 0,   sig),
+    	       MASS::mvrnorm(162, cen * 5,   sig * 6 - 2),
+    	       MASS::mvrnorm(30, cen * 2.5, sig * 50)
+    )
+
+    (ctl <- ctlcurves(x, k = 1:4))
+}
+
+#--- EXAMPLE 2 ------------------------------------------
+if(FALSE) {
+    data (geyser2)
+    (ctl <- ctlcurves(geyser2, k = 1:5))
+}
+
+## External indices: Rand, etc ...
+##  1. randindex with the contingency table as input.
+T <- matrix(c(1, 1, 0, 1, 2, 1, 0, 0, 4), nrow=3)
+(ARI <- randIndex(T))
+(FM <- FowlkesMallowsIndex(T))
+
+##  2. randindex with the two vectors as input.
+c <- matrix(c(1, 1, 1, 2, 2, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3), ncol=2, byrow=TRUE)
+## c1 = numeric vector containing the labels of the first partition
+c1 <- c[,1]
+## c2 = numeric vector containing the labels of the second partition
+c2 <- c[,2]
+
+(ARI <- randIndex(c1, c2))
+(FM <- FowlkesMallowsIndex(c1, c2))
+
+##  3. Compare ARI for iris data (true classification against tclust classification)
+library(tclust)
+c1 <- iris$Species  # first partition c1 is the true partition
+out <- tclust(iris[, 1:4], k=3, alpha=0, restr.fact=100)
+c2 <- out$cluster   # second partition c2 is the output of tclust clustering procedure
+
+(ARI <- randIndex(c1, c2))
+(FM <- FowlkesMallowsIndex(c1, c2))
+
+##  4. Compare ARI for iris data (exclude unassigned units from tclust).
+
+c1 <- iris$Species      # first partition c1 is the true partition
+out <- tclust(iris[,1:4], k=3, alpha=0.1, restr.fact=100)
+c2 <- out$cluster       #  second partition c2 is the output of tclust clustering procedure
+
+## Units inside c2 which contain number 0 are referred to trimmed observations
+noisecluster <- 0
+(ARI <- randIndex(c1, c2, noisecluster=0))
+(FM <- FowlkesMallowsIndex(c1, c2, noisecluster=0))
+
