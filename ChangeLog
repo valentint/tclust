@@ -1,6 +1,12 @@
-2025-07-10  Valentin Todorov  <valentin@todorov.at>
+2026-04-25  Valentin Todorov  <valentin@todorov.at>
     *
 	* DESCRIPTION (Version): 2.2-0
+    *
+    * R/tclustIC.R, tclustICsol.R, plot.tclustICsol.R - implemeted automatic 
+    *   choice of k and c
+    * data/mixsym.rda - simulated data set added
+    * R/plot.tclust.R - some changes related to the automatic choice of k and c
+    * vignettes/tclust.Rnw, tclust.bib - fixes related to canonical URLs
     *
     
 2025-06-29  Valentin Todorov  <valentin@todorov.at>

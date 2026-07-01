@@ -17,6 +17,7 @@
 # Object files and dlls
 *.o
 *.dll
+symbols.rds
 
 # Output files from R CMD check
 /*.Rcheck/

@@ -33,9 +33,10 @@
 %\Shorttitle{\pkg{tclust}: An \proglang{R} package for a trimming approach to cluster analysis} %% a short title (if necessary) % this is optional. no use if not different from "real" title
 
 %% an abstract and keywords
-\Abstract{This introduction to the \proglang{R} package \pkg{tclust} is a (slightly)
-modified version of \cite{FriG12}, published in the
-\emph{Journal of Statistical Software}.
+\Abstract{This introduction to the \proglang{R} package \pkg{tclust} is a 
+significantly modified version of \cite{FriG12}, published in the
+\emph{Journal of Statistical Software}. The most essential changes came after 
+releasing version \code{2-0.0} of the package.
 
 Outlying data can heavily influence standard clustering
 methods. At the same time, clustering principles can be useful when
@@ -185,7 +186,7 @@ approaches. Mixture fitting results can be easily converted into a
 probabilities into 0-1 probabilities. Contrary to these mixture
 fitting approaches, the procedures implemented in the \pkg{tclust}
 package simply remove outlying observations and do not intend to fit
-them at all. Package \pkg{tlemix} \citep[see][]{NeyF12, NeyF07} also
+them at all. Package \pkg{tlemix} \citep[see][]{NeyF07, NeyF12} also
 implements a closely related trimming approach. As described in
 Section~\ref{sec4:cons}, the \pkg{tclust} package focuses on
 offering adequate cluster scatter matrix constraints leading to a
@@ -1085,7 +1086,7 @@ needed in any case.
 ################
 
   ## computing ctlcurves
-ctl <- ctlcurves(mixt, restr.fact = 50, alpha = seq (0, 0.2, by = 0.05))
+ctl <- ctlcurves(mixt, restr.fact = 50, alpha = seq (0, 0.2, by = 0.05), trace=0)
 
 op <- par(mfrow = c (1, 1))
 plot (ctl)
@@ -1362,15 +1363,14 @@ located in the boundaries of these two clusters.
 \begin{figure}[t!]
 \centering
 %\includegraphics[width= 0.65 \textwidth]{plots_R-chunk12}
-<<fig=TRUE,echo=false,results=hide,label=chunk12,width=7.14,height=6.25>>=
+<<label=fig12, fig=TRUE, echo=false, results=hide, width=7.14, height=6.25>>=
 #################
 ##  Figure 12  ##
 #################
 
 data (swissbank)
 set.seed (0)
-fig6.ctl <- ctlcurves(swissbank, k = 1:4, alpha = seq (0, 0.3, by = 0.025),
-                       restr.fact = 50, iter.max = 100, nstart = 100)
+fig6.ctl <- ctlcurves(swissbank, k = 1:4, alpha = seq (0, 0.3, by = 0.025), restr.fact = 50, trace=0)
 
 op <- par (mfrow = c (1, 1), mar = mmar)
 plot (fig6.ctl)
@@ -1403,7 +1403,7 @@ forged bills).
 \centering
 %\includegraphics[width= 0.9 \textwidth]{plots_R-chunk13}
 
-<<fig=TRUE,echo=false,results=hide,label=chunk13,width=9,height=6.5>>=
+<<label=fig13, fig=TRUE, echo=false, results=hide, width=9, height=6.5>>=
 #################
 ##  Figure 13  ##
 #################
@@ -1482,7 +1482,7 @@ this figure.
 \begin{figure}[t!]
 \centering
 %\includegraphics[clip,width= 0.9 \textwidth]{plots_R-chunk14}
-<<label=fig-14, fig=TRUE, echo=false, results=hide, width=9, height=6.5>>=
+<<label=fig14, fig=TRUE, echo=false, results=hide, width=9, height=6.5>>=
 
 #################
 ##  Figure 14  ##
@@ -1559,12 +1559,6 @@ Future work on this package focuses on implementing additional types
 of scatter restrictions, making the algorithm even more flexible,
 and on providing numerical tools for automatically choosing the
 number of clusters and the trimming proportion.
-
-\section*{Acknowledgements:}This research is partially supported by
-the Spanish Ministerio de Ciencia e Innovaci\'{o}n, grant
-MTM2011-28657-C02-01. We would like to thank the reviewers and the
-editor whose comments and suggestions greatly helped in improving
-the content and the presentation of this paper.
 
 \bibliography{tclust}
 

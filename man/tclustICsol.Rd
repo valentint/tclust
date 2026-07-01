@@ -116,6 +116,8 @@ The function returns an S3 object of type \code{tclustICsol} containing the foll
 
  Remark: the field \code{ARICLA} is present only if \code{whichIC=ALL} or \code{whichIC="CLACLA"}.
  }
+ \item{x}{the input data matrix of size \code{n-times-p} with which
+     the Information Criteria were computed.}
 }
 \description{
 The function \code{tclustICsol()} takes as input an object of class

@@ -56,7 +56,8 @@ for each \code{k} (number of groups) and each value of the restriction factor
 }
 \value{
 The functions \code{print()} and \code{summary()} are used to obtain and print a
- summary of the results. The function returns an S3 object of type \code{tclustIC} containing the following components:
+ summary of the results. The function returns an S3 object of type 
+ \code{tclustIC} containing the following components:
 \itemize{
  \item call the matched call
  \item kk a vector containing the values of \code{k} (number of components) which have been considered.
@@ -75,6 +76,8 @@ The functions \code{print()} and \code{summary()} are used to obtain and print a
      using the classification model. This output is present only if \code{whichIC="MIXMIX"} or  \code{whichIC="ALL"}.
  \item MIXCLA a matrix of size \code{length(kk)-times-length(cc)} containinig the value of
      the ICL criterion. This output is present only if \code{whichIC="MIXCLA"} or  \code{whichIC="ALL"}.
+ \item x the input data matrix of size \code{length(n)-times-length(p)} with which 
+     the Information Criteria were computed.
  }
 }
 \description{

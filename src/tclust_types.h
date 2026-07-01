@@ -4,8 +4,7 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 // Input parameters of the procedure
-struct params
-{
+struct params {
   int n;              // Number of observations
   int p;              // Number of features
   double alpha;       // Trimming level
@@ -22,8 +21,7 @@ struct params
 };
 
 // Cluster information
-struct iteration
-{
+struct iteration {
   arma::mat centers;    // Cluster centers
   arma::cube cov;       // Cluster covariance matrices
   arma::uvec cluster;   // Cluster assignation indices

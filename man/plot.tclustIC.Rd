@@ -4,12 +4,15 @@
 \alias{plot.tclustIC}
 \title{The \code{plot} method for objects of class \code{tclustIC}}
 \usage{
-\method{plot}{tclustIC}(x, whichIC, main, xlab, ylab, xlim, ylim, col, lty, ...)
+\method{plot}{tclustIC}(x, whichIC, cc, main, xlab, ylab, xlim, ylim, col, lty, ...)
 }
 \arguments{
 \item{x}{The \code{tclustIC} object to be shown}
 
 \item{whichIC}{A string indicating which information criterion will be used. See the details section for more information.}
+
+\item{cc}{choose which curves to plot (for which restriction factors \code{c}).
+If missing, by default all curves will be printed.}
 
 \item{main}{A character-string containing the title of the plot.}
 

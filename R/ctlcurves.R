@@ -30,6 +30,7 @@
 #' @param \ldots Further arguments (as e.g. \code{restr}), passed to \code{\link{tclust}} 
 #' @param trace Defines the tracing level, which is set to \code{1} by default. 
 #'  Tracing level \code{2} gives additional information on the current iteration.
+#'  Tracing level \code{} suppresses all trace messages.
 #' @return The function returns an S3 object of type \code{ctlcurves} containing the following components:
 #'	\itemize{
 #'  \item \code{par} A list containing all the parameters passed to this function 

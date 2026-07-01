@@ -109,6 +109,8 @@
 #'
 #'  Remark: the field \code{ARICLA} is present only if \code{whichIC=ALL} or \code{whichIC="CLACLA"}.
 #'  }
+#'  \item{x}{the input data matrix of size \code{n-times-p} with which
+#'      the Information Criteria were computed.}
 #'
 #' @references
 #'      Cerioli, A., Garcia-Escudero, L.A., Mayo-Iscar, A. and Riani M. (2017).
@@ -219,7 +221,7 @@ tclustICsol <- function(obj, whichIC=c("ALL", "MIXMIX", "MIXCLA", "CLACLA"),
         }
     }
 
-    ret <- list(kk=kk, cc=cc, alpha=alpha, ARIMIX=ARIMIX, ARICLA=ARICLA)
+    ret <- list(call=match.call(), kk=kk, cc=cc, alpha=alpha, whichIC=whichIC, x=obj$x, ARIMIX=ARIMIX, ARICLA=ARICLA)
 
     if(whichIC == "MIXMIX" || whichIC == "ALL") {
     
@@ -233,7 +235,8 @@ tclustICsol <- function(obj, whichIC=c("ALL", "MIXMIX", "MIXCLA", "CLACLA"),
 
         ## Store matrix which contains in the columns the details of the
         ## classification             
-        for(i in 1:nsol) {
+        ##  - nrow(ret$MIXMIXbs) is the number of existing solutions - could be less than nsol             
+        for(i in 1:nrow(ret$MIXMIXbs)) {
             kx <- which(kk == ret$MIXMIXbs[[i, 1]])
             cx <- which(cc == ret$MIXMIXbs[[i, 2]])
             IDX <- obj$IDXMIX[[kx, cx]]
@@ -255,7 +258,8 @@ tclustICsol <- function(obj, whichIC=c("ALL", "MIXMIX", "MIXCLA", "CLACLA"),
 
         ## Store matrix which contains in the columns the details of the
         ## classification             
-        for(i in 1:nsol) {
+        ##  - nrow(ret$MIXCLAbs) is the number of existing solutions - could be less than nsol             
+        for(i in 1:nrow(ret$MIXCLAbs)) {
             kx <- which(kk == ret$MIXCLAbs[[i, 1]])
             cx <- which(cc == ret$MIXCLAbs[[i, 2]])
             IDX <- obj$IDXMIX[[kx, cx]]
@@ -269,15 +273,16 @@ tclustICsol <- function(obj, whichIC=c("ALL", "MIXMIX", "MIXCLA", "CLACLA"),
     
         objbs <- findBestSolutions(pll=obj$CLACLA, ARI=ARICLA, IDX=obj$IDXCLA, 
             kk=kk, cc=cc, nsol=nsol, thresholdRI=thresholdRI, trace=trace)
-        
+
         ret$CLACLAbs <- objbs$Bestsols
         ret$CLACLAbsari <- objbs$ARIbest
         
         ret$ARICLA <- ARICLA[, 2:ncol(ARICLA)]
 
         ## Store matrix which contains in the columns the details of the
-        ## classification             
-        for(i in 1:nsol) {
+        ## classification.
+        ##  - nrow(ret$CLACLAbs) is the number of existing solutions - could be less than nsol             
+        for(i in 1:nrow(ret$CLACLAbs)) {
             kx <- which(kk == ret$CLACLAbs[[i, 1]])
             cx <- which(cc == ret$CLACLAbs[[i, 2]])
             IDX <- obj$IDXCLA[[kx, cx]]
@@ -486,7 +491,7 @@ findBestSolutions <- function(pll, ARI, IDX, kk, cc, nsol, thresholdRI, trace=FA
     }
 
     if(endofloop && trace) {
-        cat("There are at most", z, "different solutions\n")
+        cat("There are at most", NumberOfExistingSolutions, "different solutions\n")
         
         ##  break
     }
@@ -511,3 +516,48 @@ findBestSolutions <- function(pll, ARI, IDX, kk, cc, nsol, thresholdRI, trace=FA
 
     return(list(Bestsols = Bestsols, ARIbest = ARIbest))
 } 
+
+#' @export
+print.tclustICsol <- function(x, digits = max(3, getOption("digits") - 3), ...) {
+    cat("\nCall:\n", deparse(x$call), "\n", sep = "")
+    cat("\nInformation criteria for TCLUST:", x$whichIC, "\n", paste0("Trimming = ", x$alpha))
+    cat("\nNumber of mixture components (clusters):", x$kk)
+    cat("\nvalues of the restriction factor:", x$cc, "\n")
+    if(!is.null(x$MIXMIXbs)) {
+        cat("\n\nBest solutions for MIXMIX (BIC):\n")
+        ##  print.default(format(x$MIXMIXbs, digits = digits), print.gap = 2, quote = FALSE)
+        print(x$MIXMIXbs)
+    }
+    if(!is.null(x$CLACLAbs)) {
+        cat("\n\nBest solutions for CLACLA (CLA):\n")
+        ##  print.default(format(x$CLACLAbs, digits = digits), print.gap = 2, quote = FALSE)
+        print(x$CLACLAbs)
+    }
+    if(!is.null(x$MIXCLAbs)) {
+        cat("\n\nBest solutions for MIXCLA (IC):\n")
+        ##  print.default(format(x$MIXCLAbs, digits = digits), print.gap = 2, quote = FALSE)
+        print(x$MIXCLAbs)
+    }
+
+     invisible(x)
+}
+
+#' @export
+summary.tclustICsol <- function (object, ...) {
+    ans <- list(tclustICobj=object)
+    class(ans) <- "summary.tclustICsol"
+    ans
+}
+
+#' @export
+print.summary.tclustICsol <- function(x, digits = max(3, getOption("digits") - 3), ...) {
+    cat("\nCall:\n",
+	paste(deparse(x$tclustICobj$call), sep = "\n", collapse = "\n"), "\n", sep = "")
+
+    cat("\nInformation criteria for TCLUST:", x$tclustICobj$whichIC, "\n", paste0("Trimming = ", x$tclustICobj$alpha))
+    cat("\nNumber of mixture components (clusters):", x$tclustICobj$kk)
+    cat("\nValues of the restriction factor:", x$tclustICobj$cc, "\n")
+
+    invisible(x)
+}
+

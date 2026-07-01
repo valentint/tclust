@@ -28,7 +28,8 @@ levels from 0 to 0.2 (continuously increased by 0.01), are checked.}
 \item{parallel}{A logical value, to be passed further to \code{tclust()}.}
 
 \item{trace}{Defines the tracing level, which is set to \code{1} by default. 
-Tracing level \code{2} gives additional information on the current iteration.}
+Tracing level \code{2} gives additional information on the current iteration.
+Tracing level \code{} suppresses all trace messages.}
 
 \item{\ldots}{Further arguments (as e.g. \code{restr}), passed to \code{\link{tclust}}}
 }

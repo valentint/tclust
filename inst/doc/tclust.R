@@ -357,7 +357,7 @@ par (op)
 ################
 
   ## computing ctlcurves
-ctl <- ctlcurves(mixt, restr.fact = 50, alpha = seq (0, 0.2, by = 0.05))
+ctl <- ctlcurves(mixt, restr.fact = 50, alpha = seq (0, 0.2, by = 0.05), trace=0)
 
 op <- par(mfrow = c (1, 1))
 plot (ctl)
@@ -425,7 +425,7 @@ par(op)
 
 
 ###################################################
-### code chunk number 13: chunk12
+### code chunk number 13: fig12
 ###################################################
 #################
 ##  Figure 12  ##
@@ -433,8 +433,7 @@ par(op)
 
 data (swissbank)
 set.seed (0)
-fig6.ctl <- ctlcurves(swissbank, k = 1:4, alpha = seq (0, 0.3, by = 0.025),
-                       restr.fact = 50, iter.max = 100, nstart = 100)
+fig6.ctl <- ctlcurves(swissbank, k = 1:4, alpha = seq (0, 0.3, by = 0.025), restr.fact = 50, trace=0)
 
 op <- par (mfrow = c (1, 1), mar = mmar)
 plot (fig6.ctl)
@@ -443,7 +442,7 @@ par (op)
 
 
 ###################################################
-### code chunk number 14: chunk13
+### code chunk number 14: fig13
 ###################################################
 #################
 ##  Figure 13  ##
@@ -458,7 +457,7 @@ par (op)
 
 
 ###################################################
-### code chunk number 15: fig-14
+### code chunk number 15: fig14
 ###################################################
 
 #################
@@ -500,7 +499,5 @@ points(swissbank[cl0, 4], swissbank[cl0, 6], pch = pch[cl0])
 idx <- (cl0) & condition
 points(swissbank[idx, 4], swissbank[idx, 6], pch = 1, cex = 4, col = "blue")
 par(op)
-
-
 
 

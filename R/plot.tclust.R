@@ -181,41 +181,40 @@ function (x, xlab, ylab, xlim, ylim, tol = 0.95, tol.lwd = 1, tol.lty = 3, tol.c
 #######################
 
 .plot.tclust.2d <-
-function (x, xlab, ylab, tol = 0.95, tol.lwd = 1, tol.lty = 3, tol.col = 1, ...) {
-  if (nrow (x$centers) != 2)
-    stop ("tclust object of dimension 2 expected.")
+function (x, xlab, ylab, tol=0.95, tol.lwd=1, tol.lty=3, tol.col=1, ...) {
+    if(nrow (x$centers) != 2)
+        stop ("tclust object of dimension 2 expected.")
 
-  if (is.null (x$par$x))
-    stop ("dataset not included in tclust object - cannot plot object.")
+    if(is.null (x$par$x))
+        stop ("dataset not included in tclust object - cannot plot object.")
 
-  dn <- dimnames (x$par$x)
-  if(is.list (dn) && length (dn[[2]]) == 2) {
-    if (missing (xlab))
-      xlab = dn[[2]][1]
-    if (missing (ylab))
-      ylab = dn[[2]][2]
-  }
-  else {
-    if (missing (xlab))
-      xlab = "x1"
-    if (missing (ylab))
-      ylab = "x2"
-  }
+    dn <- dimnames (x$par$x)
+    if(is.list (dn) && length (dn[[2]]) == 2) {
+        if(missing (xlab))
+          xlab = dn[[2]][1]
+        if(missing (ylab))
+          ylab = dn[[2]][2]
+    } else {
+        if(missing(xlab))
+          xlab = "x1"
+        if (missing(ylab))
+          ylab = "x2"
+    }
 
-  X <- cbind (x$par$x[, 1:2])
-  .plot.tclust.0 (x = x, X = X, xlab = xlab, ylab = ylab, axes = 3, ...)
+    X <- cbind(x$par$x[, 1:2])
+    .plot.tclust.0(x=x, X=X, xlab=xlab, ylab=ylab, axes=3, ...)
 
-  if (!is.null (x$cov) && is.numeric (tol) && length (tol) == 1 &&  0 < tol && tol < 1)
-  {
-    tol.col <- rep (tol.col, x$k)
-    tol.lty <- rep (tol.lty, x$k)
-    tol.lwd <- rep (tol.lwd, x$k)
-
-    tol.fact = sqrt(qchisq(tol, 2))  
-    for (k in 1:x$k)
-        .doEllipses (eigen = eigen (x$cov[,,k]), center = x$centers[,k],
-        lwd = tol.lwd, lty = tol.lty[k], col = tol.col[k], size = tol.fact)
-  }
+    if(!is.null(x$cov) && is.numeric(tol) && length(tol) == 1 &&  0 < tol && tol < 1)
+    {
+        tol.col <- rep(tol.col, x$k)
+        tol.lty <- rep(tol.lty, x$k)
+        tol.lwd <- rep(tol.lwd, x$k)
+        
+        tol.fact = sqrt(qchisq(tol, 2))  
+        for(k in 1:x$k)
+            .doEllipses(eigen=eigen(x$cov[,,k]), center=x$centers[,k],
+                lwd=tol.lwd, lty=tol.lty[k], col=tol.col[k], size=tol.fact)
+    }
 }
 
 #######################
@@ -243,73 +242,68 @@ function (x, xlab, ylab, ...)
 ######################
 
 .plot.tclust.0 <-
-function (x, X, labels = c ("none", "cluster", "observation"), text,
-          xlab, ylab, col, pch, by.cluster = TRUE, axes = 3, xlim, ylim, ...)
+function (x, X, labels=c ("none", "cluster", "observation"), text,
+          xlab, ylab, col, pch, by.cluster=TRUE, axes=3, xlim, ylim, ...)
 {
 
-  if(by.cluster) {
-    maxassig <- max (x$cluster)
+    if(by.cluster) {
+        maxassig <- max(x$cluster)
     
-    if (missing (col))
-      col <- 1:(x$k+1)
+        if(missing(col))
+            col <- 1:(x$k+1)
+        else
+            col <- rep(col, len=maxassig + 1)  
+        
+        if(missing(pch))
+            pch <- 1:(x$k+1)          #rep (1, x$k+1)  #
+        else
+            pch <- rep(pch,  len=maxassig + 1 )
+        col <- col[x$cluster + 1]    
+        pch <- pch[x$cluster + 1]
+    } else {
+        if(missing(col))
+            col <- x$cluster + 1
+        if(missing(pch))
+            pch <- 1
+    }
+
+    n <- x$int$dim[1]
+
+    if(!missing(text))
+        text <- rep(text, len=n)
+    else if(!missing(labels))    {
+        labels <- match.arg(labels)
+        if(labels == "cluster")
+            text = paste(x$cluster)
+        else if(labels == "observation")
+            text = paste(1:nrow (X))
+    }
+
+    plot.new()
+    par(usr = .plot.tclust.calc.usr(X, xlim, ylim))
+
+    if (missing (text))
+        points(X[,1], X[,2], pch=pch, col=col)
     else
-      col <- rep (col,  len = maxassig + 1 )  
+        text(X[,1], X[,2], labels=text, col=col)
 
-    if (missing (pch))
-      pch <- 1:(x$k+1)#rep (1, x$k+1)  #
-    else
-      pch <- rep (pch,  len = maxassig + 1 )
-    col <- col[x$cluster + 1]    
-    pch <- pch[x$cluster + 1]
-  }
-  else {
-    if (missing (col))
-      col <- x$cluster + 1
-    if (missing (pch))
-      pch <- 1
-  }
+    .plot.tclust.title(x, ...)
 
-  n <- x$int$dim[1]
+    axis.x <- axes %% 2        ## x axis 1 or 3
+    axis.y <- axes >= 2        ## y axis 2 or 3
+    
+    cex <- par ("cex")
+    if (!missing (xlab))
+        mtext (side = 1, xlab, line = 1.5 + 1.5 * axis.x, cex = cex)
+    if (!missing (ylab))
+        mtext (side = 2, ylab, line = 1.5 + 1.5 * axis.y, cex = cex)
 
-  if (!missing (text))
-    text <- rep (text, len = n)
-  else if (!missing (labels))    {
-    labels <- match.arg(labels)
-    if (labels == "cluster")
-      text = paste (x$cluster)
-    else if (labels == "observation")
-      text = paste (1:nrow (X))
-  }
-
-  plot.new ()
-  par (usr = .plot.tclust.calc.usr (X, xlim, ylim))
-
-  if (missing (text))
-    points (X[,1],X[,2], pch = pch, col = col)
-  else
-    text (X[,1], X[,2], labels = text, col = col)
-
-  .plot.tclust.title (x, ...)
-
-  axis.x <- axes %% 2        ## x axis 1 or 3
-  axis.y <- axes >= 2        ## y axis 2 or 3
-
-  cex <- par ("cex")
-  if (!missing (xlab))
-    mtext (side = 1, xlab, line = 1.5 + 1.5 * axis.x, cex = cex)
-  if (!missing (ylab))
-    mtext (side = 2, ylab, line = 1.5 + 1.5 * axis.y, cex = cex)
-
-  box ()
-  if (axis.x)
-    axis (1)
-  if (axis.y)
-    axis (2)
+    box()
+    if(axis.x)
+        axis(1)
+    if(axis.y)
+        axis(2)
 }
-
-##########################
-##  .plot.tclust.title  ##
-##########################
 
 .plot.tclust.title <- function (x, main, main.pre, sub, sub1, ...) {
   sub.par <- TRUE
@@ -375,23 +369,23 @@ function (x, X, labels = c ("none", "cluster", "observation"), text,
     mtext(sub1, cex = 0.8, line = ifelse (n.sub > 1, 0.1, 0.3))
 }
 
-.is.visible <- function (x)
-{
-  if (missing (x))
-    return (FALSE)
-  !is.null (x) && x != ""
+.is.visible <- function(x) {
+    if(missing(x))
+    return(FALSE)
+
+    !is.null(x) && x != ""
 }
 
-.plot.tclust.calc.usr <- function (X, xlim, ylim, fact = 0.04)
+.plot.tclust.calc.usr <- function(X, xlim, ylim, fact=0.04)
 {
-  if (missing (xlim))
-    xlim <- range (X[, 1])
+    if(missing(xlim))
+        xlim <- range(X[, 1])
+    
+    if(missing(ylim))
+        ylim <- range(X[, 2])
 
-  if (missing (ylim))
-    ylim <- range (X[, 2])
-
-  r <- cbind (xlim, ylim)
-  rd <- apply (r, 2, diff)
-#  r + rd * fact * c(-1,1)
-  as.numeric (r + (c(-1, 1) %*% t (rd)) * fact)
+    r <- cbind(xlim, ylim)
+    rd <- apply(r, 2, diff)
+    #  r + rd * fact * c(-1,1)
+    as.numeric (r + (c(-1, 1) %*% t (rd)) * fact)
 }

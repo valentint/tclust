@@ -1,38 +1,37 @@
-.doEllipses <- function (eigval, eigvec, eigen, center, cov, n = 100, size = 1, ...)
-{
-  if (!missing (cov))
-    eigen <- base::eigen (cov)
-  if (!missing (eigen))
-  {
-    eigval <- eigen$values
-    eigvec <- eigen$vectors
-  }
+.doEllipses <- function(eigval, eigvec, eigen, center, cov, n=100, size=1, ...) {
+    if(!missing (cov))
+        eigen <- base::eigen(cov)
+    if(!missing(eigen)) {
+        eigval <- eigen$values
+        eigvec <- eigen$vectors
+    }
+    
+    eigval[eigval < 0] <- 0
 
-  eigval[eigval < 0] <- 0
+    ##  check dimensionality of eigenvalues
+    if(!is.numeric(eigval) || !length(eigval) == 2)
+        stop("argument eigval has to be a numeric vector of length 2.")
 
-                      ##  check dimensionality of eigenvalues
-  if (!is.numeric (eigval) || !length (eigval) == 2)
-    stop ("argument eigval has to be a numeric vector of length 2.")
+    ##  check dimensionality of center
+    if(!is.numeric(center) || !length(center) == 2)
+        stop("argument center has to be a numeric vector of length 2.")
 
-                      ##  check dimensionality of center
-  if (!is.numeric (center) || !length (center) == 2)
-    stop ("argument center has to be a numeric vector of length 2.")
+    ##  check dimensionality of eigenvectors
+    if(!is.matrix(eigvec) || any(dim(eigvec) != 2))
+        stop("argument eigvec has to be a numeric mamtrix of dimension 2x2.")
 
-                      ##  check dimensionality of eigenvectors
-  if (!is.matrix (eigvec) || any (dim (eigvec) != 2))
-    stop ("argument eigvec has to be a numeric mamtrix of dimension 2x2.")
+    r <- seq(0, 2 * pi, length.out=n)   ##  create rad rep. of circle
+    uc <- rbind(sin(r), cos(r))         ##  create a unit circle
+    
+    ##  "stretch" circle corresponding to ev & sizefact
+    uc <- t(uc * sqrt(eigval) * size)
+    
+    ##  rotate resulting ellipses from PC into XY coords
+    XY <- uc %*% t(eigvec)          
 
-  r <- seq (0, 2 * pi, length.out = n)    ##  create rad rep. of circle
+    XY <- t(t(XY) + center)     ##  move ellipses to the specified center
 
-  uc <- rbind (sin(r), cos (r))      ##  create a unit circle
-                           ##  "stretch" circle corresponding to ev & sizefact
-  uc = t(uc * sqrt(eigval) * size)
-                           ##  rotate resulting ellipses from PC into XY coords
-  XY = uc %*% t(eigvec)          
-
-  XY = t( t(XY) + center)  ##  move ellipses to the specified center
-
-  lines (XY[,1], XY[,2], ...) ##  draw ellipses
+    lines(XY[,1], XY[,2], ...)  ##  draw ellipses
 }
 
 .getsubmatrix <- function(x, idx)  

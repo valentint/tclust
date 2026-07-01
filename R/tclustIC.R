@@ -39,7 +39,8 @@
 #' @param trace Whether to print intermediate results. Default is \code{trace=FALSE}.
 #' @param \ldots Further arguments (as e.g. \code{restr}), passed to \code{\link{tclust}} 
 #' @return The functions \code{print()} and \code{summary()} are used to obtain and print a
-#'  summary of the results. The function returns an S3 object of type \code{tclustIC} containing the following components:
+#'  summary of the results. The function returns an S3 object of type 
+#'  \code{tclustIC} containing the following components:
 #'	\itemize{
 #'  \item call the matched call
 #'  \item kk a vector containing the values of \code{k} (number of components) which have been considered.
@@ -58,6 +59,8 @@
 #'      using the classification model. This output is present only if \code{whichIC="MIXMIX"} or  \code{whichIC="ALL"}.
 #'  \item MIXCLA a matrix of size \code{length(kk)-times-length(cc)} containinig the value of
 #'      the ICL criterion. This output is present only if \code{whichIC="MIXCLA"} or  \code{whichIC="ALL"}.
+#'  \item x the input data matrix of size \code{length(n)-times-length(p)} with which 
+#'      the Information Criteria were computed.
 #'  }
 #' @references
 #'      Cerioli, A., Garcia-Escudero, L.A., Mayo-Iscar, A. and Riani M. (2017).
@@ -258,7 +261,7 @@ tclustIC <- function(x, kk=1:5, cc=c(1, 2, 4, 8, 16, 32, 64, 128), alpha=0.05,
         }
     }   
 
-    ret <- list(call=match.call(), kk=kk, cc=cc, alpha=alpha, whichIC=whichIC)
+    ret <- list(call=match.call(), kk=kk, cc=cc, alpha=alpha, whichIC=whichIC, x=x)
     xkk <- paste0("k=", kk)
     xcc <- paste0("c=", cc)
 
@@ -285,8 +288,7 @@ tclustIC <- function(x, kk=1:5, cc=c(1, 2, 4, 8, 16, 32, 64, 128), alpha=0.05,
 }
 
 #' @export
-print.tclustIC <- function(x, digits = max(3, getOption("digits") - 3), ...)
-{
+print.tclustIC <- function(x, digits = max(3, getOption("digits") - 3), ...) {
     cat("\nCall:\n", deparse(x$call), "\n", sep = "")
     cat("\nInformation criteria for TCLUST:", x$whichIC, "\n", paste0("Trimming = ", x$alpha))
     cat("\nNumber of mixture components (clusters):", x$kk)
@@ -311,22 +313,20 @@ print.tclustIC <- function(x, digits = max(3, getOption("digits") - 3), ...)
 }
 
 #' @export
-summary.tclustIC <- function (object, ...)
-{
+summary.tclustIC <- function (object, ...) {
     ans <- list(tclustobj=object)
     class(ans) <- "summary.tclustIC"
     ans
 }
 
 #' @export
-print.summary.tclustIC <- function(x, digits = max(3, getOption("digits") - 3), ...)
-{
+print.summary.tclustIC <- function(x, digits = max(3, getOption("digits") - 3), ...) {
     cat("\nCall:\n",
 	paste(deparse(x$tclustobj$call), sep = "\n", collapse = "\n"), "\n", sep = "")
 
     cat("\nInformation criteria for TCLUST:", x$tclustobj$whichIC, "\n", paste0("Trimming = ", x$tclustobj$alpha))
     cat("\nNumber of mixture components (clusters):", x$tclustobj$kk)
-    cat("\nvalues of the restriction factor:", x$tclustobj$cc, "\n")
+    cat("\nValues of the restriction factor:", x$tclustobj$cc, "\n")
 
     invisible(x)
 }
@@ -339,6 +339,8 @@ print.summary.tclustIC <- function(x, digits = max(3, getOption("digits") - 3), 
 #'  of each model, computed with different values for \code{k} and \code{c} for a fixed \code{alpha}.
 #' @param x The \code{tclustIC} object to be shown
 #' @param whichIC A string indicating which information criterion will be used. See the details section for more information.
+#' @param cc choose which curves to plot (for which restriction factors \code{c}).
+#'  If missing, by default all curves will be printed.
 #' @param main A character-string containing the title of the plot.
 #' @param xlab,ylab,xlim,ylim Arguments passed to plot().
 #' @param col A single value or vector of line colors passed to \code{\link[graphics]{lines}}.
@@ -365,7 +367,7 @@ print.summary.tclustIC <- function(x, digits = max(3, getOption("digits") - 3), 
 #'  plot(out)
 #'  }
 #'
-plot.tclustIC <- function(x, whichIC, main, xlab, ylab, xlim, ylim, col, lty, ...)
+plot.tclustIC <- function(x, whichIC, cc, main, xlab, ylab, xlim, ylim, col, lty, ...)
 {
    
     nkk <- length(x$kk)
@@ -422,14 +424,26 @@ plot.tclustIC <- function(x, whichIC, main, xlab, ylab, xlim, ylim, col, lty, ..
     
     pch <- 1 + (1:ncc)
     
-    plot(0, type="n", ylim=ylim, xlim=xlim, main=main, xlab=xlab, ylab=ylab)
-    mtext(paste ("Trimming =", x$alpha), line = 0.25)
+    if(missing(cc))
+    {
+        plot(0, type="n", ylim=ylim, xlim=xlim, main=main, xlab=xlab, ylab=ylab)
+        mtext(paste("Trimming =", x$alpha), line = 0.25)
+        for(j in ncc:1) {    
+            lines(x$kk, dat[,j], type = "b", col=col[j], lty=lty[j], pch=pch[j])   
+        }
+        
+        legend("topright", legend=colnames(dat), lty=lty, pch=pch, col=col, ...)
+    } else {    
 
-    for(j in ncc:1) {    
-        lines(x$kk, dat[,j], type = "b", col=col[j], lty=lty[j], pch=pch[j])   
-    }
-    
-    legend("topright", legend=colnames(dat), lty=lty, pch=pch, col=col, ...)
+        if(length(which(x$cc %in% cc)) != length(cc))
+            stop(paste("All elements of cc must be in ", paste(x$cc, collapse=","), ".", sep=""))
+
+        xcc <- if(length(cc) == 1) paste("c=", cc) else paste("c=[", paste(cc, collapse=","), "]", sep="")
+        plot(0, type="n", ylim=ylim, xlim=xlim, main=xcc, xlab=xlab, ylab=ylab)
+        for(j in which(x$cc %in% cc)) {    
+            lines(x$kk, dat[,j], type = "b", col=col[j], lty=lty[j], pch=pch[j])   
+        }
+    }    
     
     invisible(x)
 }
