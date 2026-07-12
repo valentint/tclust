@@ -15,9 +15,10 @@ tclust(
   nkeep = 5,
   iter.max,
   equal.weights = FALSE,
-  restr = c("eigen", "deter"),
+  restr = c("eigen", "deter", "GPCM"),
   restr.fact = 12,
   cshape = 1e+10,
+  pars,
   opt = c("HARD", "MIXT"),
   center = FALSE,
   scale = FALSE,
@@ -62,7 +63,10 @@ to be smaller then or equal to \code{restr.fact}
 (Garcia-Escudero, Gordaliza, Matran, and Mayo-Iscar, 2008). 
 Alternatively, \code{restr="deter"} imposes that the maximal ratio between 
 the largest and the smallest of the scatter matrices determinants is smaller 
-or equal than \code{restr.fact} (see Garcia-Escudero, Mayo-Iscar and Riani, 2020)}
+or equal than \code{restr.fact} (see Garcia-Escudero, Mayo-Iscar and Riani, 2020).
+As a third option the 14 Gaussian Parsimonious Clustering Models (GPCM) can be applied
+    by setting \code{restr="GPCM"}. All necesary parameters are taken from 
+the optional parameter \code{pars}.}
 
 \item{restr.fact}{The constant \code{restr.fact >= 1} constrains the allowed 
 differences among group scatters in terms of eigenvalues ratio
@@ -77,6 +81,34 @@ value is \code{cshape=1e10} to ensure the procedure is (virtually) affine equiva
 On the other hand, \code{cshape} values close to 1 would force the clusters to 
 be almost spherical (without necessarily the same scatters if \code{restr.fact} 
 is strictly greater than 1).}
+
+\item{pars}{a character string or a list containg the parameters for the GPCM model. The only 
+ mandatory element of the list is \code{pars$pars} which specifies the type of Gaussian 
+Parsimonious Clustering Model and can be one of:
+\code{"VVE","EVE","VVV","EVV","VEE","EEE","VEV","EEV","VVI", "EVI","VEI","EEI","VII","EII"}.
+If \code{par} is a list it can have the following elements:
+\itemize{
+   \item pars - type of the Gaussian Parsimonious Clustering Model
+    \item cdet - restriction to be applied to the determinants, default is \code{cdet=100}
+    \item shw - restriction to be applied to the elements of the shape matrices 
+        inside each group, default is \code{shw=100}
+    \item shb - restriction to be applied to the elements of the shape matrices 
+        across each group, default is \code{shb=100}
+    \item maxiterDSR - maximum number of iterations to obtain the requested restricted 
+      determinants, shape matrices and rotation, default is \code{maxiterDRS=20}
+    \item tolDSR - tolerance to use to exit the loop for obtaining the requested 
+      restricted determinants, shape matrices and rotation, default is \code{maxiterDRS=20}
+    \item maxiterS - maximum number of iterations to obtain the restricted 
+        shape matrix, default is \code{maxiterS=20}
+    \item tolS - tolerance to use to exit the iterative procedure for estimating 
+        the shape, default is \code{tolS=1e-5}
+    \item maxiterR- maximum number of iterations to obtain the common rotation 
+        matrix in presence of varying shape, default is \code{maxiterR=20}
+    \item tolR - tolerance to use to exit the iterations to obtain the common 
+        rotation matrix in presence of varying shape, default is \code{tolR=1e-5}
+    \item zerotol - tolerance value to declare all input values equal to 0 in 
+        the eigenvalues restriction routine, default is \code{zerotol=1e-10}
+}}
 
 \item{opt}{Define the target function to be optimized. A classification likelihood 
 target function is considered if \code{opt="HARD"} and a mixture classification 
@@ -294,6 +326,17 @@ Cluster components with similar sizes are favoured when considering \code{equal.
  ##  mixture approach (all 0 if trimmed unit)
  head(clus.b$posterior)
  
+ ##--- EXAMPLE 6 ------------------------------------------
+ sig <- diag(2)
+ cen <- rep(1,2)
+ x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
+            MASS::mvrnorm(540, cen * 5,   sig * 6 - 2),
+            MASS::mvrnorm(100, cen * 2.5, sig * 50))
+ 
+ ## Two groups and 10\\% trimming level
+ (clus <- tclust(x, k = 2, alpha = 0.1, restr = "GPCM", pars = "EEE"))
+ plot(clus, main="/p")
+
 }
 
 }

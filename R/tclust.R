@@ -40,7 +40,10 @@
 #'  (Garcia-Escudero, Gordaliza, Matran, and Mayo-Iscar, 2008). 
 #'  Alternatively, \code{restr="deter"} imposes that the maximal ratio between 
 #'  the largest and the smallest of the scatter matrices determinants is smaller 
-#'  or equal than \code{restr.fact} (see Garcia-Escudero, Mayo-Iscar and Riani, 2020) 
+#'  or equal than \code{restr.fact} (see Garcia-Escudero, Mayo-Iscar and Riani, 2020).
+#'  As a third option the 14 Gaussian Parsimonious Clustering Models (GPCM) can be applied
+#'      by setting \code{restr="GPCM"}. All necesary parameters are taken from 
+#'  the optional parameter \code{pars}.
 #'
 #' @param restr.fact The constant \code{restr.fact >= 1} constrains the allowed 
 #'  differences among group scatters in terms of eigenvalues ratio
@@ -54,6 +57,33 @@
 #'  On the other hand, \code{cshape} values close to 1 would force the clusters to 
 #'  be almost spherical (without necessarily the same scatters if \code{restr.fact} 
 #'  is strictly greater than 1).
+#' @param pars a character string or a list containg the parameters for the GPCM model. The only 
+#'   mandatory element of the list is \code{pars$pars} which specifies the type of Gaussian 
+#'  Parsimonious Clustering Model and can be one of:
+#'  \code{"VVE","EVE","VVV","EVV","VEE","EEE","VEV","EEV","VVI", "EVI","VEI","EEI","VII","EII"}.
+#'  If \code{par} is a list it can have the following elements:
+#'  \itemize{
+#'     \item pars - type of the Gaussian Parsimonious Clustering Model
+#'      \item cdet - restriction to be applied to the determinants, default is \code{cdet=100}
+#'      \item shw - restriction to be applied to the elements of the shape matrices 
+#'          inside each group, default is \code{shw=100}
+#'      \item shb - restriction to be applied to the elements of the shape matrices 
+#'          across each group, default is \code{shb=100}
+#'      \item maxiterDSR - maximum number of iterations to obtain the requested restricted 
+#'        determinants, shape matrices and rotation, default is \code{maxiterDRS=20}
+#'      \item tolDSR - tolerance to use to exit the loop for obtaining the requested 
+#'        restricted determinants, shape matrices and rotation, default is \code{maxiterDRS=20}
+#'      \item maxiterS - maximum number of iterations to obtain the restricted 
+#'          shape matrix, default is \code{maxiterS=20}
+#'      \item tolS - tolerance to use to exit the iterative procedure for estimating 
+#'          the shape, default is \code{tolS=1e-5}
+#'      \item maxiterR- maximum number of iterations to obtain the common rotation 
+#'          matrix in presence of varying shape, default is \code{maxiterR=20}
+#'      \item tolR - tolerance to use to exit the iterations to obtain the common 
+#'          rotation matrix in presence of varying shape, default is \code{tolR=1e-5}
+#'      \item zerotol - tolerance value to declare all input values equal to 0 in 
+#'          the eigenvalues restriction routine, default is \code{zerotol=1e-10}
+#'  }
 #' @param zero_tol The zero tolerance used. By default set to 1e-16.
 #' @param center Optional centering of the data: a function or a vector of length p 
 #'  which can optionally be specified for centering x before calculation
@@ -269,11 +299,23 @@
 #'  ##  mixture approach (all 0 if trimmed unit)
 #'  head(clus.b$posterior)
 #'  
+#'  ##--- EXAMPLE 6 ------------------------------------------
+#'  sig <- diag(2)
+#'  cen <- rep(1,2)
+#'  x <- rbind(MASS::mvrnorm(360, cen * 0,   sig),
+#'             MASS::mvrnorm(540, cen * 5,   sig * 6 - 2),
+#'             MASS::mvrnorm(100, cen * 2.5, sig * 50))
+#'  
+#'  ## Two groups and 10\% trimming level
+#'  (clus <- tclust(x, k = 2, alpha = 0.1, restr = "GPCM", pars = "EEE"))
+#'  plot(clus, main="/p")
+#'
 #' }
 #'
 
 tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, iter.max,
-                   equal.weights=FALSE, restr=c("eigen", "deter"), restr.fact=12, cshape=1e10, 
+                   equal.weights=FALSE, restr=c("eigen", "deter", "GPCM"), restr.fact=12, cshape=1e10,
+                   pars, 
                    opt=c("HARD", "MIXT"),
                    center=FALSE, scale=FALSE, store_x=TRUE, 
                    parallel=FALSE, n.cores=-1, 
@@ -281,7 +323,7 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     
     restr <- match.arg(restr)
     opt <- match.arg(opt)
-    restrC <- 0
+    restrC <- ifelse(restr=="GPCM", 1, 0)
     deterC <- restr == "deter"
 
     if(!missing(iter.max)) {
@@ -294,8 +336,44 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
         equal.weights <- FALSE
     }
 
+    ## process 'pars': CPCM parameters, if any
+    defaults <- list(
+        p          = NA,
+        k          = NA,
+        pars       = "",        # type of Gaussian Parsimonious Clustering Model
+        cdet       = 100,       # restriction to be applied to the determinants
+        shw        = 100,       # restriction to be applied to the elements of the shape matrices inside each group
+        shb        = 100,       # restriction to be applied to the elements of the shape matrices across each group
+        maxiterDSR = 20,        # maximum number of iterations to obtain the requested restricted determinants, shape matrices and rotation
+        tolDSR     = 1e-5,      # ?
+        maxiterS   = 20,        # maximum number of iterations to obtain the restricted shape matrix
+        tolS       = 1e-5,      # tolerance to use to exit the iterative procedure for estimating the shape
+        maxiterR   = 20,        # maximum number of iterations to obtain the common rotation matrix in presence of varying shape
+        tolR       = 1e-5,      # ?
+        zerotol    = 1e-10,     # tolerance value to declare all input values equal to 0 in the eigenvalues restriction routine
+        sortsh     = 0
+    )
+    
+    if(missing(pars)) {
+        if(restr == "GPCM")
+            stop("For the GPCM model the parameter 'pars' cannot be missing!")
+        else
+            pars <- defaults
+    }
+    if(is.character(pars)) {
+        if(length(pars) != 1)
+            stop("If 'pars' is a character type, its length must be 1!")
+        pars <- list(pars=pars)
+    }
+    pars <- utils::modifyList(defaults, pars)
+    if(restr == "GPCM") {
+        if(pars$pars == "")  
+            stop("For the GPCM model the 'pars' entry in the pars list cannot be empty!")
+        pars$pars <- match.arg(pars$pars, choices=c("VVE","EVE","VVV","EVV","VEE","EEE","VEV","EEV","VVI", "EVI","VEI","EEI","VII","EII"))
+    }
+
 	parlist <- list(k=k, alpha=alpha, nstart=nstart, niter1=niter1, niter2=niter2, nkeep=nkeep, 
-        restr=restr, restr.C=restrC, deter.C=deterC, restr.fact=restr.fact, cshape=cshape, opt=opt,
+        restr=restr, restr.C=restrC, deter.C=deterC, restr.fact=restr.fact, cshape=cshape, pars=pars, opt=opt,
         equal.weights=equal.weights, center=center, scale=scale,
 #           fuzzy=fuzzy, m=m, 
         zero_tol=zero_tol, drop.empty.clust=drop.empty.clust, trace=trace, store_x=store_x)
@@ -341,7 +419,7 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
         stop ("Parameter zero_tol: must be >= 0")
       if(trace != 0 & trace !=1)
         stop ("Parameter trace: must be 0 or 1")
-  
+
   ###
   # FIRST STEP: get nstart solutions with niter1 concentration steps
   ###
@@ -358,7 +436,7 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     obj.ini <- rep(0, nstart)               ## for containing best objective values
     
     for(j in 1:nstart) {
-      assig_obj <- tclust_c1(x, k, alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape,
+      assig_obj <- tclust_c1(x, k, alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape, pars,
         niter1, opt, equal.weights, zero_tol)                                                                   # niter1 steps!
       cluster.ini[[j]] <- assig_obj$cluster
       obj.ini[j] <- assig_obj$obj
@@ -391,7 +469,7 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
                             .combine = ifelse(trace, "comb", "c"),
                             .multicombine = TRUE,
                             .inorder = F) %dopar% {
-      assig_obj <- tclust_c1(x, k, alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape, 
+      assig_obj <- tclust_c1(x, k, alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape, pars,
         niter1, opt, equal.weights, zero_tol)
       
       list(assig_obj$cluster, assig_obj$obj)
@@ -425,7 +503,7 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     best_iter_obj <- -Inf
     
     for(j in 1:nkeep){
-        iter <- tclust_c2(x, k, best_assig_list[[j]], alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape,
+        iter <- tclust_c2(x, k, best_assig_list[[j]], alpha, restrC=restrC, deterC=deterC, restr.fact, cshape=cshape, pars,
             niter2, opt, equal.weights, zero_tol=1e-16)
         
         if(iter$obj > best_iter_obj){
@@ -549,15 +627,18 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     
     NlogL <- obj$NlogL
     NlogLmixt <- if(obj$par$opt == "HARD") NULL else -2*obj$obj
+    
     npar <- p * obj$k            # p * k
     if(!obj$par$equal.weights)   # if equalweights = false the k-1 mixture proportions parameters must be added
         npar = npar + (obj$k-1)
     
     if(obj$par$restr == "eigen")
         nParam <- npar + 0.5 * p * (p-1) * obj$k + (p * obj$k - 1) * (1 - 1/obj$par$restr.fact) +1
-    else
-        nParam=   npar + 0.5 * p * (p-1) * obj$k  + (obj$k - 1) * (1 - 1/(obj$par$restr.fact^(1/p))) + 1 + obj$k * (p-1) * (1 - 1/obj$par$cshape)
-    
+    else if(obj$par$restr == "deter")
+        nParam <-   npar + 0.5 * p * (p-1) * obj$k  + (obj$k - 1) * (1 - 1/(obj$par$restr.fact^(1/p))) + 1 + obj$k * (p-1) * (1 - 1/obj$par$cshape)
+    else if(obj$par$restr == "GPCM")
+        nParam <- .getIC_GPCM(obj)
+         
     logh <- log(h)
     if(obj$par$opt == "HARD")
         CLACLA <- NlogL + nParam * logh
@@ -570,3 +651,62 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     
     list(nParam=nParam, CLACLA=CLACLA, MIXMIX=MIXMIX, MIXCLA=MIXCLA)
 }
+
+.getIC_GPCM <- function(obj) {
+
+    # 1. Extract the model type string
+    modeltype <- obj$par$pars$pars
+    p <- obj$par$p
+    k <- obj$par$k
+    
+    ## Number of estimated parameters
+    ## k centroids of size v
+    ## 0.5*p*(p+1) estimates for each of the k covariance matrices
+    npar <- p * k                   # p * k
+    if(!obj$par$equal.weights)      # if equalweights = false the k-1 mixture proportions parameters must be added
+        npar = npar + (k-1)
+
+    # 2. Use switch to assign the structural parameters based on modeltype
+    params <- switch(modeltype,
+      "EII" = list(detpar = 1, shapepar = 0, rotpar = 0),
+     
+      "VII" = list(detpar = (k - 1) * (1 - 1 / (obj$par$pars$cdet^(1 / p))) + 1, shapepar = 0, rotpar = 0),
+      
+      "EEI" = list(detpar = 1, shapepar = p - 1, rotpar = 0),
+      
+      "VEI" = list(detpar = (k - 1) * (1 - 1 / (obj$par$pars$cdet^(1 / p))) + 1, shapepar = p - 1, rotpar = 0),
+      
+      "EVI" = list(detpar = 1, rotpar = 0, shapepar = (p - 1) * (1 - 1 / obj$par$pars$shw) * ((k - 1) * (1 - 1 / obj$par$pars$shb) + 1)),
+      
+      "VVI" = list(detpar = (k - 1) * (1 - 1 / (obj$par$pars$cdet^(1 / p))) + 1, shapepar = (p - 1) * (1 - 1 / obj$par$pars$shw) * ((k - 1) * (1 - 1 / obj$par$pars$shb) + 1), rotpar = 0),
+      
+      "EEE" = list(detpar = 1, shapepar = p - 1, rotpar = 0.5 * p * (p - 1)),
+      
+      "VEE" = list(detpar = (k - 1) * (1 - 1 / (obj$par$pars$cdet^(1 / p))) + 1, shapepar = p - 1, rotpar = 0.5 * p * (p - 1)),
+      
+      "EVE" = list(detpar = 1, shapepar = (p - 1) * (1 - 1 / obj$par$pars$shw) * ((k - 1) * (1 - 1 / obj$par$pars$shb) + 1), rotpar = 0.5 * p * (p - 1)),
+      
+      "EEV" = list(detpar = 1, shapepar = p - 1, rotpar = 0.5 * k * p * (p - 1)),
+      
+      "VVE" = list(detpar = (k - 1) * (1 - 1 / (obj$par$pars$cdet^(1 / p))) + 1, shapepar = (p - 1) * (1 - 1 / obj$par$pars$shw) * ((k - 1) * (1 - 1 / obj$par$pars$shb) + 1), rotpar = 0.5 * p * (p - 1)),
+      
+      "VEV" = list(detpar = (k - 1) * (1 - 1 / (obj$par$pars$cdet^(1 / p))) + 1, shapepar = p - 1, rotpar = 0.5 * k * p * (p - 1)),
+      
+      "EVV" = list(detpar = 1, shapepar = (p - 1) * (1 - 1 / obj$par$pars$shw) * ((k - 1) * (1 - 1 / obj$par$pars$shb) + 1), rotpar = 0.5 * k * p * (p - 1)),
+      
+      "VVV" = list(detpar = (k - 1) * (1 - 1 / (obj$par$pars$cdet^(1 / p))) + 1, shapepar = (p - 1) * (1 - 1 / obj$par$pars$shw) * ((k - 1) * (1 - 1 / obj$par$pars$shb) + 1), rotpar = 0.5 * k * p * (p - 1)),
+      
+      # Default fallback case if no text matches match
+      stop("FSDA:tclust:WrongModel: Wrong model for cov matrices, must be one of the 14 GPCM")
+    )
+    
+    # 3. Unpack variables into the global environment
+    detpar   <- params$detpar
+    shapepar <- params$shapepar
+    rotpar   <- params$rotpar
+    
+    # 4. Calculate total parameters
+    nParam   <- npar + detpar + shapepar + rotpar    
+    
+    nParam
+} 

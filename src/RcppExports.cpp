@@ -12,6 +12,20 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// tclust_restrSigmaGPCM
+Rcpp::List tclust_restrSigmaGPCM(arma::cube SigmaB, arma::vec niini, Rcpp::List paList, bool trace);
+RcppExport SEXP _tclust_tclust_restrSigmaGPCM(SEXP SigmaBSEXP, SEXP niiniSEXP, SEXP paListSEXP, SEXP traceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::cube >::type SigmaB(SigmaBSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type niini(niiniSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type paList(paListSEXP);
+    Rcpp::traits::input_parameter< bool >::type trace(traceSEXP);
+    rcpp_result_gen = Rcpp::wrap(tclust_restrSigmaGPCM(SigmaB, niini, paList, trace));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rlg_c1
 Rcpp::List rlg_c1(Rcpp::NumericMatrix x, Rcpp::NumericVector d, double alpha, int niter1);
 RcppExport SEXP _tclust_rlg_c1(SEXP xSEXP, SEXP dSEXP, SEXP alphaSEXP, SEXP niter1SEXP) {
@@ -42,8 +56,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // tclust_c2
-iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha, int restrC, bool deterC, double restr_fact, double cshape, int niter2, Rcpp::String opt, bool equal_weights, double zero_tol);
-RcppExport SEXP _tclust_tclust_c2(SEXP xSEXP, SEXP kSEXP, SEXP clusterSEXP, SEXP alphaSEXP, SEXP restrCSEXP, SEXP deterCSEXP, SEXP restr_factSEXP, SEXP cshapeSEXP, SEXP niter2SEXP, SEXP optSEXP, SEXP equal_weightsSEXP, SEXP zero_tolSEXP) {
+iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha, int restrC, bool deterC, double restr_fact, double cshape, Nullable<List> paList_, int niter2, Rcpp::String opt, bool equal_weights, double zero_tol);
+RcppExport SEXP _tclust_tclust_c2(SEXP xSEXP, SEXP kSEXP, SEXP clusterSEXP, SEXP alphaSEXP, SEXP restrCSEXP, SEXP deterCSEXP, SEXP restr_factSEXP, SEXP cshapeSEXP, SEXP paList_SEXP, SEXP niter2SEXP, SEXP optSEXP, SEXP equal_weightsSEXP, SEXP zero_tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -55,17 +69,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type deterC(deterCSEXP);
     Rcpp::traits::input_parameter< double >::type restr_fact(restr_factSEXP);
     Rcpp::traits::input_parameter< double >::type cshape(cshapeSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type paList_(paList_SEXP);
     Rcpp::traits::input_parameter< int >::type niter2(niter2SEXP);
     Rcpp::traits::input_parameter< Rcpp::String >::type opt(optSEXP);
     Rcpp::traits::input_parameter< bool >::type equal_weights(equal_weightsSEXP);
     Rcpp::traits::input_parameter< double >::type zero_tol(zero_tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(tclust_c2(x, k, cluster, alpha, restrC, deterC, restr_fact, cshape, niter2, opt, equal_weights, zero_tol));
+    rcpp_result_gen = Rcpp::wrap(tclust_c2(x, k, cluster, alpha, restrC, deterC, restr_fact, cshape, paList_, niter2, opt, equal_weights, zero_tol));
     return rcpp_result_gen;
 END_RCPP
 }
 // tclust_c1
-Rcpp::List tclust_c1(arma::mat x, int k, double alpha, int restrC, bool deterC, double restr_fact, double cshape, int niter1, Rcpp::String opt, bool equal_weights, double zero_tol);
-RcppExport SEXP _tclust_tclust_c1(SEXP xSEXP, SEXP kSEXP, SEXP alphaSEXP, SEXP restrCSEXP, SEXP deterCSEXP, SEXP restr_factSEXP, SEXP cshapeSEXP, SEXP niter1SEXP, SEXP optSEXP, SEXP equal_weightsSEXP, SEXP zero_tolSEXP) {
+Rcpp::List tclust_c1(arma::mat x, int k, double alpha, int restrC, bool deterC, double restr_fact, double cshape, Nullable<List> paList_, int niter1, Rcpp::String opt, bool equal_weights, double zero_tol);
+RcppExport SEXP _tclust_tclust_c1(SEXP xSEXP, SEXP kSEXP, SEXP alphaSEXP, SEXP restrCSEXP, SEXP deterCSEXP, SEXP restr_factSEXP, SEXP cshapeSEXP, SEXP paList_SEXP, SEXP niter1SEXP, SEXP optSEXP, SEXP equal_weightsSEXP, SEXP zero_tolSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -76,11 +91,12 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type deterC(deterCSEXP);
     Rcpp::traits::input_parameter< double >::type restr_fact(restr_factSEXP);
     Rcpp::traits::input_parameter< double >::type cshape(cshapeSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type paList_(paList_SEXP);
     Rcpp::traits::input_parameter< int >::type niter1(niter1SEXP);
     Rcpp::traits::input_parameter< Rcpp::String >::type opt(optSEXP);
     Rcpp::traits::input_parameter< bool >::type equal_weights(equal_weightsSEXP);
     Rcpp::traits::input_parameter< double >::type zero_tol(zero_tolSEXP);
-    rcpp_result_gen = Rcpp::wrap(tclust_c1(x, k, alpha, restrC, deterC, restr_fact, cshape, niter1, opt, equal_weights, zero_tol));
+    rcpp_result_gen = Rcpp::wrap(tclust_c1(x, k, alpha, restrC, deterC, restr_fact, cshape, paList_, niter1, opt, equal_weights, zero_tol));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -197,10 +213,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_tclust_tclust_restrSigmaGPCM", (DL_FUNC) &_tclust_tclust_restrSigmaGPCM, 4},
     {"_tclust_rlg_c1", (DL_FUNC) &_tclust_rlg_c1, 4},
     {"_tclust_rlg_c2", (DL_FUNC) &_tclust_rlg_c2, 5},
-    {"_tclust_tclust_c2", (DL_FUNC) &_tclust_tclust_c2, 12},
-    {"_tclust_tclust_c1", (DL_FUNC) &_tclust_tclust_c1, 11},
+    {"_tclust_tclust_c2", (DL_FUNC) &_tclust_tclust_c2, 13},
+    {"_tclust_tclust_c1", (DL_FUNC) &_tclust_tclust_c1, 12},
     {"_tclust_tclust_restr2_eigenv", (DL_FUNC) &_tclust_tclust_restr2_eigenv, 4},
     {"_tclust_tclust_restr2_deter_old", (DL_FUNC) &_tclust_tclust_restr2_deter_old, 4},
     {"_tclust_tclust_restr2_deter", (DL_FUNC) &_tclust_tclust_restr2_deter, 5},

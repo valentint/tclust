@@ -5,7 +5,7 @@ print.tclust <- function (x, ...)
 {
   cat ("* Results for TCLUST algorithm: *\n")
   cat ("opt=", x$par$opt, ", trim = ", x$par$alpha, ", k = ", x$k, 
-    "\nRestriction on: ", ifelse(x$par$restr=="eigen", "eigenvalues", "determinants"), "\n\n", sep = "")
+    "\nRestriction on: ", switch(x$par$restr, eigen="eigenvalues", deter="determinants", GPCM=paste0("GPCM(", x$par$pars$pars, ")")), "\n\n", sep = "")
 
   cat ("Classification (trimmed points are indicated by 0", "):\n")
 
@@ -16,7 +16,7 @@ print.tclust <- function (x, ...)
     warning ("The solution is not reliable. More iterations are probably needed.")
   cat ("\nTrimmed objective function: ", x$obj, "\n")
 
-    if (!is.null (x$par$restr.fact))
+    if (x$par$restr != "GPCM" && !is.null (x$par$restr.fact))
         cat ("Selected restriction factor:", x$par$restr.fact, "\n")
   
     ##  cat (round (x$int$iter.converged / x$int$iter.successful* 100), 
