@@ -52,13 +52,42 @@ Rcpp::List initR(const arma::cube& SigmaB,
 
     if (pars[0] == 'V')
     {
+
+// DEBUG
+//Rcout << "In initR()" << std::endl;
+//SigmaB.print("SigmaB");
+
+        // VT::22.07.2026 - The problem with zero and nan lmd in case of VVE - replace det() by eig_sym()
+        //  arma::vec eigval;
+        //  arma::mat eigvec;   
+
         for (int j = 0; j < k; ++j)
+        {
+            // VT::22.07.2026 - The problem with zero and nan lmd in case of VVE - replace det() by eig_sym()
+            //  arma::eig_sym(eigval, eigvec, SigmaB.slice(j));
+            //  lmd(j) = std::pow(arma::prod(eigval), 1.0/p);
+            
+            // DEBUG
+            //double tolerance = 1.0 * arma::datum::eps; 
+            //bool xcond = arma::rcond(SigmaB.slice(j)) >= tolerance;
+            //Rcout << "initR: " << j << "   " << arma::rcond(SigmaB.slice(j)) << "   " << tolerance << "   " << xcond << std::endl;
+            //eigval.print("eigval");
+            
+            // Rcout << "initR: " << j << "   " << arma::det(SigmaB.slice(j)) << "   " << std::pow(arma::det(SigmaB.slice(j)), 1.0 / p) << std::endl;
             lmd(j) = std::pow(arma::det(SigmaB.slice(j)), 1.0 / p);
+            
+            //if(lmd(j) == 0)
+            //    lmd(j) = 1;
+        }
     }
     else
     {
         lmd.ones();
     }
+
+// DEBUG
+//Rcout << "In initR()" << std::endl;
+//lmd.print("lmd");
 
     arma::mat Sw(p, p, arma::fill::zeros);
 
@@ -237,6 +266,12 @@ arma::mat restrshapecore(const arma::mat& GAMini,
 
     arma::mat lamGAMc = GAMini;
 
+    // DEBUG
+    //Rcout << "Entering restrshapecore()" << std::endl;
+    //Rcout << "shw" <<shw << "shb" <<shb << std::endl;
+    //GAMini.print("GAMini");
+    //niini.print("niini");
+
     //------------------------------------------------------------------
     // Step 1 : within-group restriction (columns)
     //------------------------------------------------------------------
@@ -254,6 +289,10 @@ arma::mat restrshapecore(const arma::mat& GAMini,
         }
     }
 
+    // DEBUG
+    //Rcout << "Step 1 : within-group restriction (columns)" << std::endl;
+    //lamGAMc.print("lamGAMc");
+    
     //------------------------------------------------------------------
     // Main iteration
     //------------------------------------------------------------------
@@ -295,6 +334,10 @@ arma::mat restrshapecore(const arma::mat& GAMini,
 
         if(sortsh)
         {
+            // DEBUG
+            //Rcout << "sortsh is TRUE - sort each column of GAM" << std::endl;
+            //GAM.print("GAM");
+            
             Ord.set_size(p,K);
 
             for(unsigned int j=0;j<K;++j)
@@ -557,6 +600,12 @@ Rcpp::List restrSigmaGPCM(arma::cube SigmaB, arma::vec niini, GPCMPars &pa,     
     if (haveOMG)
         OMG = Rcpp::as<arma::cube>(OMG_);
 
+    // DEBUG
+    //Rcout << "Entering restrSigmaGPCM()" << std::endl;
+    //Rcout << "shw" <<shw << "shb" <<shb << std::endl;
+    //SigmaB.print("SigmaB");
+    //niini.print("niini");
+
     //------------------------------------------------------------
     // Number of iterations
     //------------------------------------------------------------
@@ -670,6 +719,8 @@ Rcpp::List restrSigmaGPCM(arma::cube SigmaB, arma::vec niini, GPCMPars &pa,     
 
                 if(vol == 'V') {
                     lmd(j)=std::pow(arma::det(SigmaB.slice(j)),1.0/p);
+                    if(lmd(j) == 0)
+                        lmd(j) = 1;
                 }
             }
         }

@@ -33,6 +33,8 @@ struct iteration {
   arma::vec weights;    // Cluster weights
   int code;             // A return code signaling particular situations (e.g. data are aligned)
   arma::mat posterior;  // Cluster assignment given by 0/1 columns
+  arma::vec lmd;
+  arma::cube OMG;
 };
 
 // Input parameters of the GPCM constraints

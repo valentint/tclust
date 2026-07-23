@@ -164,7 +164,7 @@ The function returns the following values:
      \item{MIXMIX} - BIC which based on the parameters estimated through the mixture log-likelihood and 
          the maximized mixture likelihood as goodness of fit measure. This output 
          is present only  if \code{opt="MIXT"}.
-     \item{MIXMIX} - BIC which uses the classification likelihood based on
+     \item{MIXCLA} - BIC which uses the classification likelihood based on
          parameters estimated through the mixture likelihood (In some books 
          this quantity is called ICL). This output 
          is present only  if \code{opt="MIXT"}.
