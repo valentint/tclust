@@ -793,17 +793,17 @@ void findClustAssig(arma::mat x, iteration &iter, params &pa)
  */
 void concentration_steps(int niter, arma::mat x, iteration &iter, params &pa, GPCMPars &pars)
 {
-    //Rcout << "Enter concentration_steps ..." << std::endl;
+    // Rcout << "Enter concentration_steps ..." << std::endl;
 
     for(int i1 = 0; i1 < niter; i1++) {
 
-    //Rcout << i1 << "   " << "Before fRestr() ..." << std::endl;
-    //iter.cov.print("cov before");
+    // Rcout << i1 << "   " << "Before fRestr() ..." << std::endl;
+    // iter.cov.print("cov before");
 
         fRestr(iter, pa, pars); // restricting the clusters' scatter structure (Changes the iter object)
     
-    //Rcout << i1 << "   " << "After fRestr(): iter.code=" << iter.code << std::endl;
-    //iter.cov.print("cov after");
+    // Rcout << i1 << "   " << "After fRestr(): iter.code=" << iter.code << std::endl;
+    // iter.cov.print("cov after");
                 
         if(iter.code == 0)  {
             if(i1 > 0) {
@@ -817,19 +817,21 @@ void concentration_steps(int niter, arma::mat x, iteration &iter, params &pa, GP
         }
         
         // Estimate the cluster's assigment and TRIMMING (mixture models and HARD)
-        //Rcout << "Before findClustAssig():" << std::endl; 
+        // Rcout << "Before findClustAssig():" << std::endl; 
         findClustAssig(x, iter, pa); 
         
-        //Rcout << "After findClustAssig(): iter.code=" << iter.code << ", i1=" << i1 << std::endl; 
+        // Rcout << "After findClustAssig(): iter.code=" << iter.code << ", i1=" << i1 << std::endl; 
         
         if((int)iter.code == 2 || (i1 == niter - 1))
             break;
         
-        //Rcout << "Estimate Cluster Par:" << std::endl; 
+        // Rcout << "Estimate Cluster Par:" << std::endl; 
         estimClustPar(x, iter, pa); // estimates the cluster's parameters
     }
     
+    // Rcout << "Before calcObj():" << std::endl; 
     calcObj(x, iter, pa); // calculates the objcetive function value
+    // Rcout << "After calcObj():" << std::endl; 
 }
 
 // Internal function for concentration steps (refinement) in tclust()
@@ -919,7 +921,7 @@ iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
     iter.OMG = arma::cube(p, p, k);
 
     // DEBUG
-    // Rcout << "Enter tclust_c2()..." << std::endl;
+    // Rcout << "Enter tclust_c2()=================================================" << std::endl;
 
     
     // VT::29.10.2024 - the results with or without equal_weights were identical
@@ -944,6 +946,9 @@ iteration tclust_c2(arma::mat x, int k, arma::uvec cluster, double alpha = 0.05,
     }
     
     concentration_steps(niter2, x, iter, pa, pars);
+
+    // DEBUG
+    // Rcout << "Returning from tclust_c2():" << std::endl; 
     
     return iter;
 }
@@ -1015,10 +1020,13 @@ Rcpp::List tclust_c1(arma::mat x, int k, double alpha = 0.05,
     iter.OMG = arma::cube(p, p, k);
 
     // DEBUG
-    // Rcout << "Enter tclust_c1()..." << std::endl;
+    // Rcout << "Enter tclust_c1()=================================================" << std::endl;
 
   initClusters(x, iter, pa);                        // Cluster random initialization
   concentration_steps(niter1, x, iter, pa, pars);   // Apply niter1 concentration steps
+
+    // DEBUG
+    // Rcout << "Returning from tclust_c1():" << std::endl; 
 
   return Rcpp::List::create(
       _["obj"] = iter.obj,

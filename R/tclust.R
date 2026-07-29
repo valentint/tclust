@@ -519,7 +519,7 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
     if(trace){
         cat("\n\n")
     }
-  
+
     ## Adjust the returned object to be similar to 'tclust': 
     
     ## Handle empty clusters
@@ -582,12 +582,24 @@ tclust <- function(x, k, alpha=0.05, nstart=500, niter1=3, niter2=20, nkeep=5, i
         ret$par$x <- x
     
     ## Calculate mahalanobis distances
+    if(trace)
+        cat("\nCalculate mahalanobis distances...")
+    
     ret$mah <- array (dim = nrow(x))
     ret$mah[!ret$cluster] <- NA
 
     for(i in 1:ret$k) {
         idx <- ret$cluster == i
-        ret$mah[idx] <- mahalanobis(x[idx, , drop=FALSE], center=ret$centers[, i], cov=ret$cov[,, i])
+        if(trace){
+            cat("\ni=", i, "idx=", idx, "\n")
+            cat("\ni=", i, "size=", ret$size, "\n")
+            print(ret$cov[,, i])
+        }
+        if(is_singular(ret$cov[,, i])) {
+            warning(paste0("Class ", i, " has a singular covariance matrix and size=", ret$size[i], "."))
+            ret$mah[idx] <- NA
+        } else
+            ret$mah[idx] <- mahalanobis(x[idx, , drop=FALSE], center=ret$centers[, i], cov=ret$cov[,, i])
     }
 
     ## VT::25.09.2024

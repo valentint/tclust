@@ -51,3 +51,14 @@
              , ...)
 }
 
+## Check if a symetric matrix is singular
+is_singular <- function(M) {
+  tryCatch({
+    solve(M)
+    FALSE                   # Successfully inverted, so it is NOT singular
+  }, error = function(e) {
+    TRUE                    # Threw an error, so it IS singular
+  })
+}
+
+
