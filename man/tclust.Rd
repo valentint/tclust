@@ -58,12 +58,12 @@ shall be considered in the concentration and assignment steps.}
 
 \item{restr}{Restriction type to control relative cluster scatters. 
 The default value is \code{restr="eigen"}, so that the maximal ratio between 
-the largest and the smallest of the scatter matrices eigenvalues is constrained 
-to be smaller then or equal to \code{restr.fact} 
+the largest and the smallest of the scatter matrices eigenvalues is 
+constrained to be smaller then or equal to \code{restr.fact} 
 (Garcia-Escudero, Gordaliza, Matran, and Mayo-Iscar, 2008). 
 Alternatively, \code{restr="deter"} imposes that the maximal ratio between 
-the largest and the smallest of the scatter matrices determinants is smaller 
-or equal than \code{restr.fact} (see Garcia-Escudero, Mayo-Iscar and Riani, 2020).
+the largest and the smallest of the scatter matrices determinants is smaller than
+or equal to \code{restr.fact} (see Garcia-Escudero, Mayo-Iscar and Riani, 2020).
 As a third option the 14 Gaussian Parsimonious Clustering Models (GPCM) can be applied
     by setting \code{restr="GPCM"}. All necesary parameters are taken from 
 the optional parameter \code{pars}.}
