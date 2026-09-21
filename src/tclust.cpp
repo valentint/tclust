@@ -1061,6 +1061,7 @@ arma::vec dmvnrm(arma::mat x, arma::rowvec mean, arma::mat cov) {
 
 //' Function to perform the E-step for a Gaussian mixture distribution
 //' @name estepRR
+//' @rdname estepRR
 //' @description Compute the log PDF for each observation, the posterior probabilities
 //'     and the objective function (total log-likelihood) for a Gaussian 
 //'     mixture distribution
@@ -1132,7 +1133,8 @@ arma::vec dmvnrm(arma::mat x, arma::rowvec mean, arma::mat cov) {
 //'        dd$obj
 //'        dd$logpdf
 //'        dd$postprob
-        
+//' @export
+//'
 // [[Rcpp::export]]
 Rcpp::List estepRR(const arma::mat& ll) {
 

@@ -1,6 +1,5 @@
-#'
-#' @export
-
+#' @rdname tclust
+#' @exportS3Method print tclust
 print.tclust <- function (x, ...)
 {
   cat ("* Results for TCLUST algorithm: *\n")
@@ -25,8 +24,8 @@ print.tclust <- function (x, ...)
   invisible(x)
 }
 
-#' @export
-
+#' @rdname tkmeans
+#' @exportS3Method print tkmeans
 print.tkmeans <- function (x, ...) {
   cat ("* Results for TKMEANS algorithm: *\n")
   cat ("trim = ", x$par$alpha, ", k = ", x$k, "\n", sep = "")

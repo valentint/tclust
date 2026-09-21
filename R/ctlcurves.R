@@ -286,8 +286,8 @@ plot.ctlcurves <- function(x, what=c("obj", "min.weights", "doubtful"),
     lines (x$par$alpha, nrow (x$par$x) * (1-x$par$alpha) * x$par$mah.alpha, lty = 2)
 }
 
-#' @export
-
+#' @rdname ctlcurves
+#' @exportS3Method print ctlcurves
 print.ctlcurves <- function (x, ...) {
 
   cat ("Computed ", length (x$par$k) * length (x$par$alpha),

@@ -97,8 +97,8 @@ DiscrFact <- function(x, threshold=1/10)
     ret
   }
 
-#' @export
-
+#' @rdname DiscrFact
+#' @exportS3Method print DiscrFact
 print.DiscrFact <- function (x, ...) {
   cat ("Mean overall discriminant factor:", mean (x$assignfact), "\n")
   cat ("Mean discriminant factor per cluster:\n")

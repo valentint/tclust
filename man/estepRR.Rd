@@ -3,6 +3,9 @@
 \name{estepRR}
 \alias{estepRR}
 \title{Function to perform the E-step for a Gaussian mixture distribution}
+\usage{
+estepRR(ll)
+}
 \arguments{
 \item{ll}{Rcpp::NumericMatrix, n-by-k where \code{n} is the number of 
 observations and \code{k} is the number of clusters.}
